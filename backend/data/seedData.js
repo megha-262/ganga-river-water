@@ -25,8 +25,8 @@ const sampleLocations = [
     city: 'Gangotri',
     state: 'Uttarakhand',
     coordinates: {
-      type: 'Point',
-      coordinates: [78.9629, 30.9993] // [longitude, latitude]
+      latitude: 30.9993,
+      longitude: 78.9629
     },
     riverKm: 0,
     description: 'Source of the Ganga River',
@@ -37,8 +37,8 @@ const sampleLocations = [
     city: 'Haridwar',
     state: 'Uttarakhand',
     coordinates: {
-      type: 'Point',
-      coordinates: [78.1642, 29.9457]
+      latitude: 29.9457,
+      longitude: 78.1642
     },
     riverKm: 253,
     description: 'Holy city where Ganga enters the plains',
@@ -49,8 +49,8 @@ const sampleLocations = [
     city: 'Kanpur',
     state: 'Uttar Pradesh',
     coordinates: {
-      type: 'Point',
-      coordinates: [80.3319, 26.4499]
+      latitude: 26.4499,
+      longitude: 80.3319
     },
     riverKm: 1017,
     description: 'Major industrial city on Ganga',
@@ -61,8 +61,8 @@ const sampleLocations = [
     city: 'Prayagraj',
     state: 'Uttar Pradesh',
     coordinates: {
-      type: 'Point',
-      coordinates: [81.8463, 25.4358]
+      latitude: 25.4358,
+      longitude: 81.8463
     },
     riverKm: 1226,
     description: 'Confluence of Ganga, Yamuna, and Saraswati',
@@ -73,8 +73,8 @@ const sampleLocations = [
     city: 'Varanasi',
     state: 'Uttar Pradesh',
     coordinates: {
-      type: 'Point',
-      coordinates: [83.0047, 25.3176]
+      latitude: 25.3176,
+      longitude: 83.0047
     },
     riverKm: 1384,
     description: 'Ancient holy city on the banks of Ganga',
@@ -85,8 +85,8 @@ const sampleLocations = [
     city: 'Patna',
     state: 'Bihar',
     coordinates: {
-      type: 'Point',
-      coordinates: [85.1376, 25.5941]
+      latitude: 25.5941,
+      longitude: 85.1376
     },
     riverKm: 1663,
     description: 'Capital of Bihar on Ganga banks',
@@ -97,8 +97,8 @@ const sampleLocations = [
     city: 'Kolkata',
     state: 'West Bengal',
     coordinates: {
-      type: 'Point',
-      coordinates: [88.3639, 22.5726]
+      latitude: 22.5726,
+      longitude: 88.3639
     },
     riverKm: 2071,
     description: 'Major city near Ganga delta',
@@ -150,23 +150,20 @@ function generateWaterQualityData(location, timestamp) {
   
   // Helper function to determine status
   const getStatus = (value, thresholds) => {
-    if (value <= thresholds.excellent) return 'excellent';
     if (value <= thresholds.good) return 'good';
-    if (value <= thresholds.fair) return 'fair';
+    if (value <= thresholds.moderate) return 'moderate';
     return 'poor';
   };
   
   const getStatusReverse = (value, thresholds) => {
-    if (value >= thresholds.excellent) return 'excellent';
     if (value >= thresholds.good) return 'good';
-    if (value >= thresholds.fair) return 'fair';
+    if (value >= thresholds.moderate) return 'moderate';
     return 'poor';
   };
   
   const getStatusPH = (value) => {
-    if (value >= 6.5 && value <= 8.5) return 'excellent';
-    if (value >= 6.0 && value <= 9.0) return 'good';
-    if (value >= 5.5 && value <= 9.5) return 'fair';
+    if (value >= 6.5 && value <= 8.5) return 'good';
+    if (value >= 6.0 && value <= 9.0) return 'moderate';
     return 'poor';
   };
   
@@ -174,22 +171,22 @@ function generateWaterQualityData(location, timestamp) {
     dissolvedOxygen: {
       value: Math.round(dissolvedOxygen * 10) / 10,
       unit: 'mg/L',
-      status: getStatusReverse(dissolvedOxygen, { excellent: 8, good: 6, fair: 4 })
+      status: getStatusReverse(dissolvedOxygen, { good: 6, moderate: 4 })
     },
     biochemicalOxygenDemand: {
       value: Math.round(biochemicalOxygenDemand * 10) / 10,
       unit: 'mg/L',
-      status: getStatus(biochemicalOxygenDemand, { excellent: 3, good: 5, fair: 8 })
+      status: getStatus(biochemicalOxygenDemand, { good: 3, moderate: 6 })
     },
     nitrate: {
       value: Math.round(nitrate * 10) / 10,
       unit: 'mg/L',
-      status: getStatus(nitrate, { excellent: 10, good: 20, fair: 45 })
+      status: getStatus(nitrate, { good: 15, moderate: 35 })
     },
     fecalColiform: {
       value: Math.round(fecalColiform),
       unit: 'MPN/100ml',
-      status: getStatus(fecalColiform, { excellent: 50, good: 500, fair: 2500 })
+      status: getStatus(fecalColiform, { good: 200, moderate: 1000 })
     },
     ph: {
       value: Math.round(ph * 10) / 10,
@@ -199,26 +196,33 @@ function generateWaterQualityData(location, timestamp) {
     turbidity: {
       value: Math.round(turbidity * 10) / 10,
       unit: 'NTU',
-      status: getStatus(turbidity, { excellent: 5, good: 10, fair: 20 })
+      status: getStatus(turbidity, { good: 8, moderate: 15 })
     }
   };
   
   // Calculate Water Quality Index (simplified)
-  const statusScores = { excellent: 4, good: 3, fair: 2, poor: 1 };
+  const statusScores = { good: 3, moderate: 2, poor: 1 };
   const avgScore = Object.values(parameters).reduce((sum, param) => sum + statusScores[param.status], 0) / 6;
   
-  let waterQualityIndex = Math.round(avgScore * 25); // Scale to 0-100
+  let waterQualityIndex = Math.round(avgScore * 33.33); // Scale to 0-100
   let overallStatus;
   if (waterQualityIndex >= 80) overallStatus = 'excellent';
   else if (waterQualityIndex >= 60) overallStatus = 'good';
-  else if (waterQualityIndex >= 40) overallStatus = 'fair';
-  else overallStatus = 'poor';
+  else if (waterQualityIndex >= 40) overallStatus = 'moderate';
+  else if (waterQualityIndex >= 20) overallStatus = 'poor';
+  else overallStatus = 'very_poor';
+  
+  // Temperature parameter (required by model)
+  const temperature = 15 + Math.random() * 20; // 15-35°C
+  parameters.temperature = {
+    value: Math.round(temperature * 10) / 10,
+    unit: '°C'
+  };
   
   // Weather conditions
-  const weatherConditions = ['sunny', 'cloudy', 'rainy', 'overcast'];
-  const weather = isMonsoon ? 
-    (Math.random() > 0.6 ? 'rainy' : 'cloudy') : 
-    weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
+  const rainfall = isMonsoon ? Math.round(Math.random() * 50) : Math.round(Math.random() * 5); // mm
+  const humidity = Math.round(40 + Math.random() * 40); // 40-80%
+  const windSpeed = Math.round(Math.random() * 20); // 0-20 km/h
   
   return {
     locationId: location._id,
@@ -227,15 +231,14 @@ function generateWaterQualityData(location, timestamp) {
     waterQualityIndex,
     overallStatus,
     weather: {
-      condition: weather,
-      temperature: Math.round(15 + Math.random() * 20), // 15-35°C
-      humidity: Math.round(40 + Math.random() * 40) // 40-80%
+      rainfall,
+      humidity,
+      windSpeed
     },
     dataSource: 'simulated',
     qualityFlags: {
       validated: true,
-      calibrated: true,
-      outlier: Math.random() > 0.95 // 5% chance of outlier
+      anomaly: Math.random() > 0.95 // 5% chance of anomaly
     }
   };
 }
@@ -330,20 +333,31 @@ async function seedForecasts(locations) {
         const seasonalFactor = Math.sin(moment().dayOfYear() / 365 * 2 * Math.PI) * 0.1 + 1;
         
         const params = latestData.parameters;
-        const predictedParams = {};
+        const trends = ['improving', 'stable', 'declining'];
         
-        Object.keys(params).forEach(key => {
-          let predictedValue = params[key].value * trendFactor * seasonalFactor;
-          
-          // Add some day-specific variation
-          predictedValue *= (1 + (Math.random() - 0.5) * 0.2 * day);
-          
-          predictedParams[key] = {
-            value: Math.round(predictedValue * 10) / 10,
-            unit: params[key].unit,
-            confidence: Math.max(0.6, 0.9 - day * 0.1) // Decreasing confidence
-          };
-        });
+        // Generate predictions for required parameters only
+        const predictedParams = {
+          dissolvedOxygen: {
+            predicted: Math.round(params.dissolvedOxygen.value * trendFactor * seasonalFactor * 10) / 10,
+            confidence: Math.max(60, 90 - day * 10),
+            trend: trends[Math.floor(Math.random() * trends.length)]
+          },
+          biochemicalOxygenDemand: {
+            predicted: Math.round(params.biochemicalOxygenDemand.value * trendFactor * seasonalFactor * 10) / 10,
+            confidence: Math.max(60, 90 - day * 10),
+            trend: trends[Math.floor(Math.random() * trends.length)]
+          },
+          nitrate: {
+            predicted: Math.round(params.nitrate.value * trendFactor * seasonalFactor * 10) / 10,
+            confidence: Math.max(60, 90 - day * 10),
+            trend: trends[Math.floor(Math.random() * trends.length)]
+          },
+          fecalColiform: {
+            predicted: Math.round(params.fecalColiform.value * trendFactor * seasonalFactor),
+            confidence: Math.max(60, 90 - day * 10),
+            trend: trends[Math.floor(Math.random() * trends.length)]
+          }
+        };
         
         // Calculate predicted WQI
         const predictedWQI = Math.max(10, Math.min(100, 
@@ -353,18 +367,18 @@ async function seedForecasts(locations) {
         let predictedStatus;
         if (predictedWQI >= 80) predictedStatus = 'excellent';
         else if (predictedWQI >= 60) predictedStatus = 'good';
-        else if (predictedWQI >= 40) predictedStatus = 'fair';
-        else predictedStatus = 'poor';
+        else if (predictedWQI >= 40) predictedStatus = 'moderate';
+        else if (predictedWQI >= 20) predictedStatus = 'poor';
+        else predictedStatus = 'very_poor';
         
         predictions.push({
-          day,
           date: forecastDate,
+          dayOffset: day,
           parameters: predictedParams,
           predictedWQI: Math.round(predictedWQI),
           predictedStatus,
-          confidence: Math.max(0.6, 0.9 - day * 0.1),
           expectedWeather: {
-            condition: ['sunny', 'cloudy', 'rainy'][Math.floor(Math.random() * 3)],
+            rainfall: Math.round(Math.random() * 10),
             temperature: Math.round(20 + Math.random() * 15),
             humidity: Math.round(50 + Math.random() * 30)
           }
@@ -383,13 +397,13 @@ async function seedForecasts(locations) {
       
       const forecast = {
         locationId: location._id,
+        forecastDate: new Date(),
         generatedAt: new Date(),
         predictions,
         modelInfo: {
-          name: 'Simple Trend Model',
+          algorithm: 'rule-based',
           version: '1.0',
-          accuracy: 0.75,
-          lastTrained: moment().subtract(7, 'days').toDate()
+          accuracy: 75
         },
         forecastAlerts
       };
