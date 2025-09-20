@@ -350,7 +350,7 @@ const Dashboard = () => {
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 px-4">
                 <div className="space-y-6 animate-fade-in" style={{animationDelay: '0.3s'}}>
                   <div className="scroll-scale">
-                    <WaterQualityMap locations={data.locations} />
+                    <WaterQualityMap locations={data.locations} waterQualityData={data.latestReadings} />
                   </div>
                   <div className="scroll-scale">
                     <AlertsOverview alerts={data.alerts} />
