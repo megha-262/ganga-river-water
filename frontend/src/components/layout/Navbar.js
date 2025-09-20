@@ -8,6 +8,7 @@ const Navbar = () => {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Droplets },
+    { name: 'Locations', href: '/locations', icon: MapPin },
     { name: 'Alerts', href: '/alerts', icon: AlertTriangle },
     { name: 'Forecasting', href: '/forecasting', icon: TrendingUp },
     { name: 'Emergency', href: '/emergency', icon: LifeBuoy }, // New Emergency link
@@ -19,7 +20,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-white shadow-lg border-b border-gray-200">
+    <nav className="sticky top-0 z-[1001] bg-white shadow-lg border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo and brand */}

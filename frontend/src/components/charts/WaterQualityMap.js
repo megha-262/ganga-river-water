@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -10,6 +10,68 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
+
+// Ganga River path coordinates with water quality data (from source to mouth)
+const gangaRiverSegments = [
+  // Excellent quality (WQI 80-100) - Green
+  {
+    path: [
+      [30.0668, 79.0193], // Gangotri (source) - WQI 94
+      [30.1588, 78.9312], // Uttarkashi
+      [30.0869, 78.2676], // Tehri
+      [29.9457, 78.1642], // Haridwar - WQI 94
+    ],
+    color: '#10b981', // Green
+    quality: 'excellent',
+    wqi: 94
+  },
+  // Good quality (WQI 60-79) - Yellow-Green
+  {
+    path: [
+      [29.9457, 78.1642], // Haridwar
+      [29.8543, 77.8880], // Roorkee
+      [29.3803, 77.7064], // Muzaffarnagar
+      [28.9845, 77.7064], // Meerut
+      [28.6692, 77.4538], // Ghaziabad
+      [28.6139, 77.2090], // Delhi
+      [27.8974, 78.0880], // Aligarh
+      [27.1767, 78.0081], // Agra
+      [26.8467, 80.9462], // Lucknow
+      [26.4499, 80.3319], // Kanpur - WQI 67
+    ],
+    color: '#84cc16', // Lime green
+    quality: 'good',
+    wqi: 67
+  },
+  // Fair quality (WQI 40-59) - Orange
+  {
+    path: [
+      [26.4499, 80.3319], // Kanpur
+      [25.4358, 81.8463], // Allahabad (Prayagraj) - WQI 67
+      [25.3176, 82.9739], // Varanasi - WQI 67
+      [25.5941, 85.1376], // Patna - WQI 61
+      [25.2048, 87.4501], // Bhagalpur - WQI 56
+    ],
+    color: '#f59e0b', // Amber
+    quality: 'fair',
+    wqi: 61
+  },
+  // Poor quality (WQI 20-39) - Red-Orange
+  {
+    path: [
+      [25.2048, 87.4501], // Bhagalpur
+      [24.7914, 87.3119], // Rajmahal - WQI 56
+      [24.8318, 87.9118], // Farakka - WQI 56
+      [23.5041, 88.1955], // Murshidabad - WQI 56
+      [22.9868, 88.1955], // Nabadwip
+      [22.5726, 88.3639], // Kolkata - WQI 56
+      [21.8045, 88.1955], // Sundarbans (mouth) - WQI 50
+    ],
+    color: '#ef4444', // Red
+    quality: 'poor',
+    wqi: 53
+  }
+];
 
 // Custom marker icons based on water quality status
 const createCustomIcon = (status) => {
@@ -110,7 +172,25 @@ const WaterQualityMap = ({ locations = [], waterQualityData = [] }) => {
   };
 
   return (
-    <div className="w-full h-96 rounded-lg overflow-hidden border border-gray-200">
+    <div className="w-full h-96 rounded-lg overflow-hidden border border-gray-200 relative">
+      {/* Color Legend */}
+      <div className="absolute top-4 right-4 z-[1000] bg-white rounded-lg shadow-lg border border-gray-200 p-3">
+        <div className="text-xs font-semibold text-gray-700 mb-2">Water Quality</div>
+        <div className="space-y-1">
+          {gangaRiverSegments.map((segment, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <div 
+                className="w-3 h-1 rounded"
+                style={{ backgroundColor: segment.color }}
+              ></div>
+              <span className="text-xs text-gray-600 capitalize">
+                {segment.quality} ({segment.wqi})
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      
       <MapContainer
         center={defaultCenter}
         zoom={defaultZoom}
@@ -123,6 +203,38 @@ const WaterQualityMap = ({ locations = [], waterQualityData = [] }) => {
         />
         
         <FitBounds locations={locations} />
+
+        {/* Ganga River Path with Pollution-based Colors */}
+        {gangaRiverSegments.map((segment, index) => (
+          <Polyline
+            key={index}
+            positions={segment.path}
+            pathOptions={{
+              color: segment.color,
+              weight: 5,
+              opacity: 0.9,
+              lineCap: 'round',
+              lineJoin: 'round'
+            }}
+          >
+            <Popup>
+              <div className="text-sm">
+                <div className="font-semibold text-gray-800 mb-1">
+                  River Segment Quality
+                </div>
+                <div className="space-y-1">
+                  <div>Status: <span className={`font-medium ${
+                    segment.quality === 'excellent' ? 'text-green-600' :
+                    segment.quality === 'good' ? 'text-lime-600' :
+                    segment.quality === 'fair' ? 'text-amber-600' :
+                    'text-red-600'
+                  }`}>{segment.quality.charAt(0).toUpperCase() + segment.quality.slice(1)}</span></div>
+                  <div>Average WQI: <span className="font-medium">{segment.wqi}</span></div>
+                </div>
+              </div>
+            </Popup>
+          </Polyline>
+        ))}
 
         {locations.map((location) => {
           const reading = qualityMap[location._id];

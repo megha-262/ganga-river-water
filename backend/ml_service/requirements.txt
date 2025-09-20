@@ -1,9 +1,0 @@
-flask
-flask-restful
-pandas
-numpy
-scikit-learn
-statsmodels
-prophet
-tensorflow
-keras

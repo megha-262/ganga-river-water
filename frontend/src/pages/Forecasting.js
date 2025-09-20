@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -13,24 +14,52 @@ import {
   BarChart3,
   Clock,
   Eye,
-  Download
+  Download,
+  Zap,
+  Target,
+  Waves
 } from 'lucide-react';
-import LoadingSpinner from '../components/LoadingSpinner';
+import { LoadingSpinner } from '../components/common';
 import { apiService } from '../services/api';
 import moment from 'moment';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line, Bar } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const Forecasting = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [forecasts, setForecasts] = useState([]);
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState('all');
-  const [selectedDays, setSelectedDays] = useState(3);
   const [lastUpdated, setLastUpdated] = useState(null);
 
   useEffect(() => {
     fetchData();
-  }, [selectedLocation, selectedDays]);
+  }, [selectedLocation]);
 
   const fetchData = async () => {
     try {
@@ -165,6 +194,128 @@ const Forecasting = () => {
     return units[param] || '';
   };
 
+  // Prepare chart data for WQI trends
+  const prepareWQIChartData = (forecasts) => {
+    const datasets = forecasts.map((forecast, index) => {
+      const data = forecast.predictions?.map(p => p.predictedWQI) || [];
+      const colors = [
+        'rgba(59, 130, 246, 0.8)',
+        'rgba(16, 185, 129, 0.8)',
+        'rgba(245, 158, 11, 0.8)',
+        'rgba(239, 68, 68, 0.8)',
+        'rgba(139, 92, 246, 0.8)'
+      ];
+      
+      return {
+        label: forecast.locationId?.name || `Location ${index + 1}`,
+        data: data,
+        borderColor: colors[index % colors.length],
+        backgroundColor: colors[index % colors.length].replace('0.8', '0.2'),
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        pointBackgroundColor: colors[index % colors.length],
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2
+      };
+    });
+
+    return {
+      labels: ['Day 1', 'Day 2', 'Day 3'],
+      datasets: datasets
+    };
+  };
+
+  // Prepare parameter comparison chart data
+  const prepareParameterChartData = (forecasts, parameter) => {
+    const datasets = forecasts.map((forecast, index) => {
+      const data = forecast.predictions?.map(p => p.parameters?.[parameter]?.predicted || 0) || [];
+      const colors = [
+        'rgba(59, 130, 246, 0.8)',
+        'rgba(16, 185, 129, 0.8)',
+        'rgba(245, 158, 11, 0.8)',
+        'rgba(239, 68, 68, 0.8)',
+        'rgba(139, 92, 246, 0.8)'
+      ];
+      
+      return {
+        label: forecast.locationId?.name || `Location ${index + 1}`,
+        data: data,
+        backgroundColor: colors[index % colors.length],
+        borderColor: colors[index % colors.length],
+        borderWidth: 2,
+        borderRadius: 8,
+        borderSkipped: false,
+      };
+    });
+
+    return {
+      labels: ['Day 1', 'Day 2', 'Day 3'],
+      datasets: datasets
+    };
+  };
+
+  // Chart options
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          usePointStyle: true,
+          padding: 20,
+          font: {
+            size: 12,
+            weight: '500'
+          }
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#ffffff',
+        bodyColor: '#ffffff',
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: true,
+        padding: 12
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)',
+          drawBorder: false
+        },
+        ticks: {
+          font: {
+            size: 11
+          },
+          color: '#6B7280'
+        }
+      },
+      x: {
+        grid: {
+          display: false
+        },
+        ticks: {
+          font: {
+            size: 11
+          },
+          color: '#6B7280'
+        }
+      }
+    },
+    animation: {
+      duration: 2000,
+      easing: 'easeInOutQuart'
+    }
+  };
+
   if (loading && forecasts.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -186,7 +337,7 @@ const Forecasting = () => {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Water Quality Forecasting</h1>
                 <p className="text-sm text-gray-500">
-                  Predictive analysis for the next {selectedDays} days
+                  Predictive analysis for the next 3 days
                 </p>
               </div>
             </div>
@@ -213,7 +364,7 @@ const Forecasting = () => {
       {/* Filters */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Location
@@ -229,20 +380,6 @@ const Forecasting = () => {
                     {location.name} - {location.city}
                   </option>
                 ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Forecast Period
-              </label>
-              <select
-                value={selectedDays}
-                onChange={(e) => setSelectedDays(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value={1}>1 Day</option>
-                <option value={3}>3 Days</option>
-                <option value={7}>7 Days</option>
               </select>
             </div>
             <div className="flex items-end">
@@ -271,129 +408,195 @@ const Forecasting = () => {
         </div>
       )}
 
-      {/* Forecasts Grid */}
+      {/* Forecasts Visualization */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
         {forecasts.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-            <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Forecasts Available</h3>
-            <p className="text-gray-500 mb-6">
-              Generate forecasts to see water quality predictions for your selected locations.
-            </p>
-            <button
-              onClick={() => generateNewForecast()}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              <TrendingUp className="w-4 h-4 mr-2" />
-              Generate Forecasts
-            </button>
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl shadow-xl border border-blue-200 p-12 text-center relative overflow-hidden">
+            {/* Animated background elements */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute -top-4 -left-4 w-24 h-24 bg-blue-200 rounded-full opacity-20 animate-pulse"></div>
+              <div className="absolute top-1/2 -right-8 w-32 h-32 bg-indigo-200 rounded-full opacity-20 animate-pulse delay-1000"></div>
+              <div className="absolute -bottom-6 left-1/3 w-20 h-20 bg-purple-200 rounded-full opacity-20 animate-pulse delay-500"></div>
+            </div>
+            
+            <div className="relative z-10">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl mx-auto mb-6 flex items-center justify-center transform rotate-3 hover:rotate-6 transition-transform duration-300">
+                <TrendingUp className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">No Forecasts Available</h3>
+              <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                Generate AI-powered forecasts to see stunning water quality predictions and trends for your selected locations.
+              </p>
+              <button
+                onClick={() => generateNewForecast()}
+                className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+              >
+                <Zap className="w-5 h-5 mr-2" />
+                Generate AI Forecasts
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {forecasts.map((forecast) => (
-              <div key={forecast._id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                {/* Forecast Header */}
-                <div className="p-6 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <MapPin className="w-5 h-5 text-blue-500" />
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {forecast.locationId?.name || 'Unknown Location'}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {forecast.locationId?.city || 'Unknown City'}
-                        </p>
-                      </div>
+          <div className="space-y-8">
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              {/* WQI Trend Chart */}
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                      <BarChart3 className="w-6 h-6 text-white" />
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500">Generated</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {moment(forecast.generatedAt).format('MMM DD, YYYY')}
-                      </p>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">Water Quality Index Trends</h3>
+                      <p className="text-blue-100">3-Day forecast comparison across locations</p>
                     </div>
                   </div>
                 </div>
-
-                {/* Forecast Data */}
                 <div className="p-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {forecast.predictions && forecast.predictions.map((prediction, index) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-medium text-gray-900">
-                            Day {index + 1}
-                          </h4>
-                          <span className="text-xs text-gray-500">
-                            {moment(forecast.generatedAt).add(index + 1, 'days').format('MMM DD')}
-                          </span>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          {Object.entries(prediction.parameters || {}).map(([param, value]) => {
-                            const status = getParameterStatus(value, param);
-                            return (
-                              <div key={param} className="space-y-1">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-2">
-                                    {getStatusIcon(status)}
-                                    <span className="text-xs text-gray-600">
-                                      {formatParameterName(param)}
-                                    </span>
-                                  </div>
-                                  <span className="text-xs font-medium text-gray-900">
-                                    {typeof value === 'object' && value !== null ? 
-                                      (value.predicted !== undefined ? value.predicted.toFixed(2) : 
-                                       value.value !== undefined ? value.value.toFixed(2) : 
-                                       JSON.stringify(value)) :
-                                      typeof value === 'number' ? value.toFixed(2) : value
-                                    } {formatParameterUnit(param)}
-                                  </span>
-                                </div>
-                                {typeof value === 'object' && value !== null && (value.confidence !== undefined || value.trend !== undefined) && (
-                                  <div className="flex items-center justify-between text-xs text-gray-500 ml-6">
-                                    {value.confidence !== undefined && (
-                                      <span>Confidence: {(value.confidence * 100).toFixed(0)}%</span>
-                                    )}
-                                    {value.trend !== undefined && (
-                                      <div className="flex items-center space-x-1">
-                                        {getTrendIcon(value.trend)}
-                                        <span>Trend: {value.trend > 0 ? '+' : ''}{(value.trend * 100).toFixed(1)}%</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {prediction.wqi && (
-                          <div className={`mt-3 p-2 rounded-md border ${getStatusColor(getParameterStatus(prediction.wqi, 'wqi'))}`}>
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium">Water Quality Index</span>
-                              <span className="text-sm font-bold">{prediction.wqi.toFixed(1)}</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Generate specific forecast button */}
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <button
-                      onClick={() => generateNewForecast(forecast.locationId?._id)}
-                      disabled={loading}
-                      className="w-full px-3 py-2 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                    >
-                      <RefreshCw className={`w-4 h-4 mr-2 inline ${loading ? 'animate-spin' : ''}`} />
-                      Update Forecast for This Location
-                    </button>
+                  <div className="h-80">
+                    <Line data={prepareWQIChartData(forecasts)} options={chartOptions} />
                   </div>
                 </div>
               </div>
-            ))}
+
+              {/* Parameter Comparison Chart */}
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                      <Activity className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">Dissolved Oxygen Forecast</h3>
+                      <p className="text-emerald-100">Critical parameter analysis</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="h-80">
+                    <Bar data={prepareParameterChartData(forecasts, 'dissolvedOxygen')} options={chartOptions} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Enhanced Forecast Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {forecasts.map((forecast, index) => (
+                <div key={forecast._id} className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transform hover:scale-105 transition-all duration-300">
+                  {/* Animated Header */}
+                  <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-black bg-opacity-10"></div>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white bg-opacity-10 rounded-full -mr-16 -mt-16"></div>
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white bg-opacity-10 rounded-full -ml-12 -mb-12"></div>
+                    
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-14 h-14 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                          <Waves className="w-7 h-7 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-white">
+                            {forecast.locationId?.name || 'Unknown Location'}
+                          </h3>
+                          <p className="text-purple-100">
+                            {forecast.locationId?.city || 'Unknown City'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-purple-100 text-sm">Generated</p>
+                        <p className="text-white font-semibold">
+                          {moment(forecast.generatedAt).format('MMM DD')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Enhanced Forecast Data */}
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                      {forecast.predictions && forecast.predictions.map((prediction, dayIndex) => (
+                        <div key={dayIndex} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200 hover:shadow-lg transition-shadow duration-300">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                                <span className="text-white text-sm font-bold">{dayIndex + 1}</span>
+                              </div>
+                              <span className="text-sm font-medium text-gray-900">
+                                {moment(forecast.generatedAt).add(dayIndex + 1, 'days').format('MMM DD')}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {prediction.predictedWQI && (
+                            <div className="mb-3">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-medium text-gray-600">WQI Score</span>
+                                <span className="text-lg font-bold text-gray-900">{prediction.predictedWQI}</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full transition-all duration-1000 ${
+                                    prediction.predictedWQI >= 80 ? 'bg-green-500' :
+                                    prediction.predictedWQI >= 60 ? 'bg-yellow-500' :
+                                    prediction.predictedWQI >= 40 ? 'bg-orange-500' : 'bg-red-500'
+                                  }`}
+                                  style={{ width: `${prediction.predictedWQI}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="space-y-2">
+                            {Object.entries(prediction.parameters || {}).slice(0, 3).map(([param, value]) => {
+                              const status = getParameterStatus(value.predicted, param);
+                              return (
+                                <div key={param} className="flex items-center justify-between text-xs">
+                                  <span className="text-gray-600 capitalize truncate">
+                                    {param.replace(/([A-Z])/g, ' $1').trim().substring(0, 12)}
+                                  </span>
+                                  <div className="flex items-center space-x-1">
+                                    <span className="font-semibold text-gray-900">
+                                      {value.predicted?.toFixed(1)}
+                                    </span>
+                                    <span className={`w-2 h-2 rounded-full ${
+                                      status === 'excellent' ? 'bg-green-500' :
+                                      status === 'good' ? 'bg-blue-500' :
+                                      status === 'fair' ? 'bg-yellow-500' : 'bg-red-500'
+                                    }`}></span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex space-x-3">
+                      <button
+                        onClick={() => generateNewForecast(forecast.locationId?._id)}
+                        disabled={loading}
+                        className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-4 h-4 mr-2 inline ${loading ? 'animate-spin' : ''}`} />
+                        Update Forecast
+                      </button>
+                      <button 
+                        onClick={() => navigate(`/location/${forecast.locationId?._id}`)}
+                        className="px-4 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors duration-300"
+                      >
+                        <Eye className="w-4 h-4 mr-2 inline" />
+                        Details
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

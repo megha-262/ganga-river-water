@@ -21,6 +21,29 @@ const alertSchema = new mongoose.Schema({
     enum: ['low', 'medium', 'high', 'critical'],
     required: true
   },
+  level: {
+    type: Number,
+    min: 1,
+    max: 5,
+    required: true,
+    default: 1
+  },
+  levelName: {
+    type: String,
+    enum: ['NORMAL', 'ADVISORY', 'WARNING', 'CRITICAL', 'EMERGENCY'],
+    required: true,
+    default: 'NORMAL'
+  },
+  color: {
+    type: String,
+    required: true,
+    default: '#10B981'
+  },
+  bgColor: {
+    type: String,
+    required: true,
+    default: '#ECFDF5'
+  },
   title: {
     type: String,
     required: true,
@@ -89,6 +112,7 @@ const alertSchema = new mongoose.Schema({
 // Indexes for efficient querying
 alertSchema.index({ locationId: 1, createdAt: -1 });
 alertSchema.index({ severity: 1, status: 1 });
+alertSchema.index({ level: 1, status: 1 });
 alertSchema.index({ type: 1, createdAt: -1 });
 alertSchema.index({ status: 1, createdAt: -1 });
 alertSchema.index({ resolved: 1, createdAt: -1 });
@@ -141,6 +165,18 @@ alertSchema.statics.getActiveCount = function() {
 // Static method to get alerts by severity
 alertSchema.statics.getBySeverity = function(severity) {
   return this.find({ severity: severity, resolved: false }).sort({ createdAt: -1 });
+};
+
+// Static method to get alerts by level
+alertSchema.statics.getByLevel = function(level) {
+  return this.find({ level, status: 'active' }).sort({ createdAt: -1 });
+};
+
+alertSchema.statics.getByLevelRange = function(minLevel, maxLevel) {
+  return this.find({ 
+    level: { $gte: minLevel, $lte: maxLevel }, 
+    status: 'active' 
+  }).sort({ level: -1, createdAt: -1 });
 };
 
 module.exports = mongoose.model('Alert', alertSchema);

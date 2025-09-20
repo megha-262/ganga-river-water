@@ -42,9 +42,10 @@ const WaterQualityChart = ({ data = [], parameter = 'waterQualityIndex', title =
     const labels = sortedData.map(item => {
       const date = new Date(item.timestamp);
       return date.toLocaleDateString('en-IN', { 
-        month: 'short', 
         day: 'numeric',
-        hour: parameter === 'waterQualityIndex' ? undefined : '2-digit'
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
       });
     });
 

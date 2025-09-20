@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Twitter, 
   Linkedin, 
@@ -99,15 +100,15 @@ const Footer = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Brand Section */}
             <div className="lg:col-span-1">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-green-500 rounded-xl flex items-center justify-center shadow-lg">
+              <Link to="/" className="flex items-center space-x-3 mb-6 group">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-green-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
                   <Waves className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold">Ganga Monitor</h3>
+                  <h3 className="text-xl font-bold group-hover:text-blue-200 transition-colors">Ganga Monitor</h3>
                   <p className="text-blue-200 text-sm">Water Quality Platform</p>
                 </div>
-              </div>
+              </Link>
               
               <p className="text-gray-300 mb-6 leading-relaxed">
                 Real-time monitoring and prediction system for Ganga river water quality, 
@@ -136,17 +137,34 @@ const Footer = () => {
                   {section.title}
                 </h4>
                 <ul className="space-y-3">
-                  {section.links.map((link, linkIndex) => (
-                    <li key={linkIndex}>
-                      <a
-                        href={link.href}
-                        className="text-gray-300 hover:text-white transition-colors duration-200 flex items-center group"
-                      >
-                        <span>{link.name}</span>
-                        <ExternalLink className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </a>
-                    </li>
-                  ))}
+                  {section.links.map((link, linkIndex) => {
+                    // Check if it's an external link
+                    const isExternal = link.href.startsWith('http') || link.href.startsWith('mailto') || link.href.startsWith('tel');
+                    
+                    return (
+                      <li key={linkIndex}>
+                        {isExternal ? (
+                          <a
+                            href={link.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-300 hover:text-white transition-colors duration-200 flex items-center group"
+                          >
+                            <span>{link.name}</span>
+                            <ExternalLink className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </a>
+                        ) : (
+                          <Link
+                            to={link.href}
+                            className="text-gray-300 hover:text-white transition-colors duration-200 flex items-center group hover:translate-x-1 transform"
+                          >
+                            <span>{link.name}</span>
+                            <ExternalLink className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </Link>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ))}

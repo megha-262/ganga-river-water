@@ -73,6 +73,8 @@ export const apiService = {
       return api.get(`/water-quality/trends${queryString ? `?${queryString}` : ''}`);
     },
     getCurrentAlerts: () => api.get('/water-quality/alerts'),
+    getCombined: (locationId) => api.get(`/water-quality/combined/${locationId}`),
+    getCombinedAll: () => api.get('/water-quality/combined'),
     create: (data) => api.post('/water-quality', data),
   },
 
@@ -95,6 +97,21 @@ export const apiService = {
       return api.get(`/alerts${queryString ? `?${queryString}` : ''}`);
     },
     getSummary: () => api.get('/alerts/summary'),
+    getStatistics: () => api.get('/alerts/statistics'),
+    getTrends: (params = {}) => {
+      const queryString = new URLSearchParams(params).toString();
+      return api.get(`/alerts/trends${queryString ? `?${queryString}` : ''}`);
+    },
+    getByLevel: (level, params = {}) => {
+      const queryString = new URLSearchParams(params).toString();
+      return api.get(`/alerts/level/${level}${queryString ? `?${queryString}` : ''}`);
+    },
+    getByLevelRange: (minLevel, maxLevel, params = {}) => {
+      const queryString = new URLSearchParams({ ...params, levelMin: minLevel, levelMax: maxLevel }).toString();
+      return api.get(`/alerts${queryString ? `?${queryString}` : ''}`);
+    },
+    resolve: (alertId) => api.put(`/alerts/${alertId}/resolve`),
+    acknowledge: (alertId) => api.put(`/alerts/${alertId}/acknowledge`),
     getByLocation: (locationId, params = {}) => {
       const queryString = new URLSearchParams(params).toString();
       return api.get(`/alerts/location/${locationId}${queryString ? `?${queryString}` : ''}`);

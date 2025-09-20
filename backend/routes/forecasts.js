@@ -85,16 +85,16 @@ router.post('/generate/:locationId', async (req, res) => {
     const { locationId } = req.params;
     
     // Generate forecasts using the new forecasting service
-    const forecasts = await forecastService.generateLocationForecast(locationId);
+    const forecast = await forecastService.generateLocationForecast(locationId);
     
-    // Save forecasts to database
-    await forecastService.saveForecastsToDatabase(forecasts);
+    // Save forecasts to database (wrap single forecast in array)
+    await forecastService.saveForecastsToDatabase([forecast]);
 
     res.json({
       success: true,
-      message: `Generated ${forecasts.length} forecasts successfully`,
-      count: forecasts.length,
-      data: forecasts
+      message: `Generated forecast for location ${locationId} successfully`,
+      count: forecast.predictions.length,
+      data: forecast
     });
   } catch (error) {
     console.error('Error generating forecast:', error);

@@ -2,9 +2,15 @@ const mongoose = require('mongoose');
 const WaterQuality = require('../models/WaterQuality');
 const Location = require('../models/Location');
 const Alert = require('../models/Alert');
+require('dotenv').config();
 
 // Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/ganga-water-monitoring', {
+if (!process.env.MONGODB_URI) {
+  console.error('❌ MONGODB_URI environment variable is required');
+  process.exit(1);
+}
+
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });

@@ -1,44 +1,54 @@
 const express = require('express');
 const router = express.Router();
+const Alert = require('../models/Alert');
 const WaterQuality = require('../models/WaterQuality');
 const Forecast = require('../models/Forecast');
 const Location = require('../models/Location');
 const moment = require('moment');
+const alertService = require('../services/alertService');
 
 // @route   GET /api/alerts
-// @desc    Get all current alerts
+// @desc    Get all current alerts with 5-level system
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const { severity, type = 'all', locationId } = req.query;
+    const { 
+      level, 
+      levelMin, 
+      levelMax, 
+      severity, 
+      type, 
+      locationId, 
+      status = 'active',
+      limit = 100,
+      page = 1 
+    } = req.query;
     
-    let alerts = [];
+    // Build filters for new alert system
+    const filters = {
+      limit: parseInt(limit),
+      page: parseInt(page)
+    };
     
-    // Get current water quality alerts
-    if (type === 'all' || type === 'current') {
-      const currentAlerts = await getCurrentWaterQualityAlerts(locationId, severity);
-      alerts = alerts.concat(currentAlerts.map(alert => ({ ...alert, type: 'current' })));
+    if (level) filters.level = parseInt(level);
+    if (levelMin && levelMax) {
+      filters.levelMin = parseInt(levelMin);
+      filters.levelMax = parseInt(levelMax);
     }
+    if (locationId) filters.locationId = locationId;
+    if (type) filters.type = type;
     
-    // Get forecast alerts
-    if (type === 'all' || type === 'forecast') {
-      const forecastAlerts = await getForecastAlerts(locationId, severity);
-      alerts = alerts.concat(forecastAlerts.map(alert => ({ ...alert, type: 'forecast' })));
-    }
-
-    // Sort by severity and timestamp
-    alerts.sort((a, b) => {
-      const severityOrder = { 'high': 3, 'medium': 2, 'low': 1 };
-      if (severityOrder[a.severity] !== severityOrder[b.severity]) {
-        return severityOrder[b.severity] - severityOrder[a.severity];
-      }
-      return new Date(b.timestamp) - new Date(a.timestamp);
-    });
+    // Get alerts using new alert service
+    const alerts = await alertService.getActiveAlerts(filters);
+    
+    // Get alert statistics
+    const statistics = await alertService.getAlertStatistics();
 
     res.json({
       success: true,
       count: alerts.length,
-      filters: { severity, type, locationId },
+      filters: { level, levelMin, levelMax, severity, type, locationId, status },
+      statistics,
       data: alerts
     });
   } catch (error) {
@@ -58,24 +68,24 @@ router.get('/summary', async (req, res) => {
   try {
     const { locationId } = req.query;
     
-    // Get current alerts
-    const currentAlerts = await getCurrentWaterQualityAlerts(locationId);
-    const forecastAlerts = await getForecastAlerts(locationId);
+    // Get alerts using new alert service
+    const filters = locationId ? { locationId } : {};
+    const alerts = await alertService.getActiveAlerts(filters);
+    const statistics = await alertService.getAlertStatistics();
     
-    const allAlerts = [
-      ...currentAlerts.map(alert => ({ ...alert, type: 'current' })),
-      ...forecastAlerts.map(alert => ({ ...alert, type: 'forecast' }))
-    ];
+    // Get recent alerts (last 10)
+    const recentAlerts = alerts.slice(0, 10);
 
-    // Count by severity
+    // Count by level (1-5 system)
     const summary = {
-      total: allAlerts.length,
-      high: allAlerts.filter(a => a.severity === 'high').length,
-      medium: allAlerts.filter(a => a.severity === 'medium').length,
-      low: allAlerts.filter(a => a.severity === 'low').length,
-      current: currentAlerts.length,
-      forecast: forecastAlerts.length,
-      locations: [...new Set(allAlerts.map(a => a.location._id.toString()))].length
+      total: alerts.length,
+      level1: alerts.filter(a => a.level === 1).length, // Info
+      level2: alerts.filter(a => a.level === 2).length, // Low
+      level3: alerts.filter(a => a.level === 3).length, // Medium
+      level4: alerts.filter(a => a.level === 4).length, // High
+      level5: alerts.filter(a => a.level === 5).length, // Critical
+      recentAlerts: recentAlerts,
+      statistics: statistics
     };
 
     res.json({
@@ -87,6 +97,147 @@ router.get('/summary', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching alerts summary',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/alerts/statistics
+// @desc    Get detailed alert statistics with 5-level breakdown
+// @access  Public
+router.get('/statistics', async (req, res) => {
+  try {
+    const statistics = await alertService.getAlertStatistics();
+    
+    res.json({
+      success: true,
+      data: statistics
+    });
+  } catch (error) {
+    console.error('Error fetching alert statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching alert statistics',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/alerts/trends
+// @desc    Get alert trends over time
+// @access  Public
+router.get('/trends', async (req, res) => {
+  try {
+    const { days = 7 } = req.query;
+    const trends = await alertService.getAlertTrends(parseInt(days));
+    
+    res.json({
+      success: true,
+      data: trends,
+      period: `${days} days`
+    });
+  } catch (error) {
+    console.error('Error fetching alert trends:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching alert trends',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/alerts/level/:level
+// @desc    Get alerts by specific level
+// @access  Public
+router.get('/level/:level', async (req, res) => {
+  try {
+    const { level } = req.params;
+    const { limit = 50 } = req.query;
+    
+    const alerts = await alertService.getActiveAlerts({
+      level: parseInt(level),
+      limit: parseInt(limit)
+    });
+    
+    res.json({
+      success: true,
+      level: parseInt(level),
+      count: alerts.length,
+      data: alerts
+    });
+  } catch (error) {
+    console.error('Error fetching alerts by level:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching alerts by level',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/alerts/:id/resolve
+// @desc    Resolve an alert
+// @access  Public
+router.post('/:id/resolve', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { resolvedBy = 'user', notes = '' } = req.body;
+    
+    const alert = await Alert.findById(id);
+    if (!alert) {
+      return res.status(404).json({
+        success: false,
+        message: 'Alert not found'
+      });
+    }
+    
+    alert.resolve(resolvedBy, notes);
+    await alert.save();
+    
+    res.json({
+      success: true,
+      message: 'Alert resolved successfully',
+      data: alert
+    });
+  } catch (error) {
+    console.error('Error resolving alert:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error resolving alert',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/alerts/:id/acknowledge
+// @desc    Acknowledge an alert
+// @access  Public
+router.post('/:id/acknowledge', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { acknowledgedBy = 'user', notes = '' } = req.body;
+    
+    const alert = await Alert.findById(id);
+    if (!alert) {
+      return res.status(404).json({
+        success: false,
+        message: 'Alert not found'
+      });
+    }
+    
+    alert.acknowledge(acknowledgedBy, notes);
+    await alert.save();
+    
+    res.json({
+      success: true,
+      message: 'Alert acknowledged successfully',
+      data: alert
+    });
+  } catch (error) {
+    console.error('Error acknowledging alert:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error acknowledging alert',
       error: error.message
     });
   }

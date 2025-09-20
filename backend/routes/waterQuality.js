@@ -2,7 +2,10 @@ const express = require('express');
 const router = express.Router();
 const WaterQuality = require('../models/WaterQuality');
 const Location = require('../models/Location');
+const Forecast = require('../models/Forecast');
 const moment = require('moment');
+const forecastService = require('../services/forecastService');
+const alertService = require('../services/alertService');
 
 // @route   GET /api/water-quality
 // @desc    Get water quality data with filters
@@ -271,16 +274,207 @@ router.post('/', async (req, res) => {
     const populatedData = await WaterQuality.findById(waterQuality._id)
       .populate('locationId', 'name city coordinates');
 
+    // Evaluate water quality and create alerts if necessary
+    let alertEvaluation = null;
+    try {
+      if (populatedData.locationId) {
+        alertEvaluation = await alertService.evaluateAndCreateAlerts(
+          populatedData.toObject(),
+          populatedData.locationId._id,
+          populatedData.locationId.name
+        );
+      }
+    } catch (alertError) {
+      console.error('Error evaluating alerts:', alertError);
+      // Don't fail the main request if alert evaluation fails
+    }
+
     res.status(201).json({
       success: true,
       message: 'Water quality data added successfully',
-      data: populatedData
+      data: populatedData,
+      alertEvaluation: alertEvaluation ? {
+        level: alertEvaluation.summary.level,
+        levelName: alertEvaluation.summary.levelName,
+        alertsCreated: alertEvaluation.alertsCreated.length,
+        alertsUpdated: alertEvaluation.alertsUpdated.length
+      } : null
     });
   } catch (error) {
     console.error('Error adding water quality data:', error);
     res.status(400).json({
       success: false,
       message: 'Error adding water quality data',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/water-quality/combined/:locationId
+// @desc    Get combined 13-day data (10 days historical + 3 days forecast) for a location
+// @access  Public
+router.get('/combined/:locationId', async (req, res) => {
+  try {
+    const { locationId } = req.params;
+    
+    // Validate location exists
+    const location = await Location.findById(locationId);
+    if (!location) {
+      return res.status(404).json({
+        success: false,
+        message: 'Location not found'
+      });
+    }
+
+    // Get 10 days of historical data
+    const tenDaysAgo = moment().subtract(10, 'days').startOf('day');
+    const historicalData = await WaterQuality.find({
+      locationId: locationId,
+      timestamp: { $gte: tenDaysAgo.toDate() }
+    })
+    .populate('locationId', 'name city coordinates riverKm')
+    .sort({ timestamp: 1 })
+    .select('-__v');
+
+    // Get or generate forecast data for next 3 days
+    let forecastData = await Forecast.findOne({
+      locationId: locationId,
+      forecastDate: { $gte: moment().startOf('day').toDate() }
+    })
+    .populate('locationId', 'name city coordinates riverKm')
+    .sort({ generatedAt: -1 });
+
+    // If no recent forecast exists, generate one
+    if (!forecastData) {
+      try {
+        await forecastService.generateLocationForecast(locationId);
+        forecastData = await Forecast.findOne({
+          locationId: locationId,
+          forecastDate: { $gte: moment().startOf('day').toDate() }
+        })
+        .populate('locationId', 'name city coordinates riverKm')
+        .sort({ generatedAt: -1 });
+      } catch (forecastError) {
+        console.warn('Could not generate forecast:', forecastError.message);
+      }
+    }
+
+    // Format the combined data
+    const combinedData = {
+      location: location,
+      historical: historicalData.map(data => ({
+        ...data.toObject(),
+        dataType: 'historical',
+        date: moment(data.timestamp).format('YYYY-MM-DD')
+      })),
+      forecast: forecastData ? forecastData.predictions.map(prediction => ({
+        locationId: forecastData.locationId,
+        timestamp: prediction.date,
+        date: moment(prediction.date).format('YYYY-MM-DD'),
+        dataType: 'forecast',
+        dayOffset: prediction.dayOffset,
+        parameters: {
+          dissolvedOxygen: {
+            value: prediction.parameters.dissolvedOxygen.predicted,
+            unit: 'mg/L',
+            status: 'predicted',
+            confidence: prediction.parameters.dissolvedOxygen.confidence,
+            trend: prediction.parameters.dissolvedOxygen.trend
+          },
+          biochemicalOxygenDemand: {
+            value: prediction.parameters.biochemicalOxygenDemand.predicted,
+            unit: 'mg/L',
+            status: 'predicted',
+            confidence: prediction.parameters.biochemicalOxygenDemand.confidence,
+            trend: prediction.parameters.biochemicalOxygenDemand.trend
+          },
+          nitrate: {
+            value: prediction.parameters.nitrate.predicted,
+            unit: 'mg/L',
+            status: 'predicted',
+            confidence: prediction.parameters.nitrate.confidence,
+            trend: prediction.parameters.nitrate.trend
+          },
+          fecalColiform: {
+            value: prediction.parameters.fecalColiform.predicted,
+            unit: 'MPN/100ml',
+            status: 'predicted',
+            confidence: prediction.parameters.fecalColiform.confidence,
+            trend: prediction.parameters.fecalColiform.trend
+          }
+        },
+        waterQualityIndex: prediction.predictedWQI,
+        overallStatus: prediction.predictedStatus,
+        expectedWeather: prediction.expectedWeather
+      })) : [],
+      summary: {
+        totalDays: 13,
+        historicalDays: 10,
+        forecastDays: 3,
+        dataAvailable: {
+          historical: historicalData.length,
+          forecast: forecastData ? forecastData.predictions.length : 0
+        }
+      }
+    };
+
+    res.json({
+      success: true,
+      data: combinedData
+    });
+  } catch (error) {
+    console.error('Error fetching combined data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching combined data',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/water-quality/combined
+// @desc    Get combined 13-day data for all active locations
+// @access  Public
+router.get('/combined', async (req, res) => {
+  try {
+    const locations = await Location.find({ isActive: true });
+    const combinedData = [];
+
+    for (const location of locations) {
+      try {
+        // Get 10 days of historical data
+        const tenDaysAgo = moment().subtract(10, 'days').startOf('day');
+        const historicalData = await WaterQuality.find({
+          locationId: location._id,
+          timestamp: { $gte: tenDaysAgo.toDate() }
+        })
+        .sort({ timestamp: 1 })
+        .select('-__v');
+
+        // Get latest historical data for current status
+        const latestData = historicalData.length > 0 ? historicalData[historicalData.length - 1] : null;
+
+        combinedData.push({
+          location: location,
+          latestReading: latestData,
+          historicalCount: historicalData.length,
+          hasForecasts: true // We'll generate forecasts on demand
+        });
+      } catch (locationError) {
+        console.warn(`Error processing location ${location.name}:`, locationError.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      count: combinedData.length,
+      data: combinedData
+    });
+  } catch (error) {
+    console.error('Error fetching combined data for all locations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching combined data',
       error: error.message
     });
   }

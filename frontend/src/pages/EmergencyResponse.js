@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Droplets, Factory, AlertTriangle, Church, Phone, Mail } from 'lucide-react';
-import ModernCard from '../components/ModernCard';
+import { ModernCard } from '../components/common';
 
 const emergencyProtocols = [
   {

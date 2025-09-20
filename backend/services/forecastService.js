@@ -143,12 +143,12 @@ class ForecastService {
   // Generate forecast for a single location
   async generateLocationForecast(locationId) {
     try {
-      // Get historical data (last 30 days)
+      // Get historical data (last 10 days)
       const historicalData = await WaterQuality.find({
         locationId: locationId
       })
       .sort({ timestamp: -1 })
-      .limit(30);
+      .limit(40); // 10 days * 4 readings per day
 
       if (historicalData.length === 0) {
         throw new Error('No historical data available for forecasting');
