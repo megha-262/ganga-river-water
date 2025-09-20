@@ -8,10 +8,8 @@ const { seedAlerts, seedLocations } = require('../data/seedData');
 // Connect to database
 const connectDB = async () => {
   try {
-    if (!process.env.MONGODB_URI) {
-      throw new Error('MONGODB_URI environment variable is required');
-    }
-    await mongoose.connect(process.env.MONGODB_URI);
+    const MONGODB_URI = 'mongodb+srv://megha99734_db_user:2dFD4Sgt4Ewr5d1S@cluster0.byca9ck.mongodb.net/river-project?retryWrites=true&w=majority';
+    await mongoose.connect(MONGODB_URI);
     console.log('MongoDB connected for adding sample alerts...');
   } catch (error) {
     console.error('Database connection error:', error);

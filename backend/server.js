@@ -36,12 +36,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // MongoDB connection
-if (!process.env.MONGODB_URI) {
-  console.error('❌ MONGODB_URI environment variable is required');
-  process.exit(1);
-}
+const MONGODB_URI = 'mongodb+srv://megha99734_db_user:2dFD4Sgt4Ewr5d1S@cluster0.byca9ck.mongodb.net/river-project?retryWrites=true&w=majority';
 
-mongoose.connect(process.env.MONGODB_URI, {
+mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
