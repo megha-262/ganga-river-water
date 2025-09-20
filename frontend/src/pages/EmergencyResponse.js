@@ -135,18 +135,18 @@ const EmergencyResponse = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 text-gray-800 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-extrabold text-center text-gray-900 mb-10 animate-fade-in scroll-slide-up">
+        <h1 className="text-4xl font-extrabold text-center text-gray-900 mb-10">
           Ganga Emergency Response Protocols
         </h1>
 
-        <p className="text-center text-lg text-gray-600 mb-12 max-w-3xl mx-auto animate-fade-in" style={{animationDelay: '0.2s'}}>
+        <p className="text-center text-lg text-gray-600 mb-12 max-w-3xl mx-auto">
           Quick access to essential guidelines for various water-related emergencies in the Ganga River.
           Select a protocol to view detailed steps and emergency contacts.
         </p>
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Left Column: Selectable Protocol Cards */}
-          <div className="lg:w-1/3 space-y-6 animate-fade-in scroll-slide-left" style={{animationDelay: '0.4s'}}>
+          <div className="lg:w-1/3 space-y-6">
             {emergencyProtocols.map((protocol) => (
               <ModernCard
                 key={protocol.id}
@@ -160,7 +160,7 @@ const EmergencyResponse = () => {
           </div>
 
           {/* Right Column: Detailed Steps */}
-          <div className="lg:w-2/3 bg-white bg-opacity-90 rounded-xl shadow-xl p-8 space-y-8 animate-fade-in scroll-slide-right" style={{animationDelay: '0.6s'}}>
+          <div className="lg:w-2/3 bg-white bg-opacity-90 rounded-xl shadow-xl p-8 space-y-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-6 border-b pb-4 border-gray-200">
               {selectedProtocol.title}
             </h2>
