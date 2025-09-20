@@ -245,6 +245,7 @@ const Dashboard = () => {
                   location: { type: 'monitoring' }
                 }}
                 className="text-center animate-fade-in"
+                onClick={() => setActiveTab('locations')}
               />
               <ModernCard
                 title="Active Alerts"
@@ -259,6 +260,7 @@ const Dashboard = () => {
                 }}
                 className="text-center animate-fade-in"
                 style={{animationDelay: '0.1s'}}
+                onClick={() => setActiveTab('alerts')}
               />
               <ModernCard
                 title="Community Reports"
@@ -272,6 +274,7 @@ const Dashboard = () => {
                 }}
                 className="text-center animate-fade-in"
                 style={{animationDelay: '0.2s'}}
+                onClick={() => setActiveTab('community')}
               />
               <ModernCard
                 title="Local Initiatives"
@@ -286,6 +289,7 @@ const Dashboard = () => {
                 }}
                 className="text-center animate-fade-in"
                 style={{animationDelay: '0.3s'}}
+                onClick={() => setActiveTab('initiatives')}
               />
             </div>
           </div>
