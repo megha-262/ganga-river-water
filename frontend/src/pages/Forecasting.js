@@ -74,6 +74,14 @@ const Forecasting = () => {
   };
 
   const getParameterStatus = (value, parameter) => {
+    // Extract numeric value from object if needed
+    let numericValue = value;
+    if (typeof value === 'object' && value !== null) {
+      numericValue = value.predicted !== undefined ? value.predicted : 
+                    value.value !== undefined ? value.value : 
+                    parseFloat(value);
+    }
+
     const thresholds = {
       dissolvedOxygen: { good: 6, moderate: 4 },
       biochemicalOxygenDemand: { good: 3, moderate: 6 },
@@ -84,19 +92,19 @@ const Forecasting = () => {
     };
 
     const threshold = thresholds[parameter];
-    if (!threshold) return 'unknown';
+    if (!threshold || isNaN(numericValue)) return 'unknown';
 
     if (parameter === 'ph') {
-      if (value >= threshold.good[0] && value <= threshold.good[1]) return 'good';
-      if (value >= threshold.moderate[0] && value <= threshold.moderate[1]) return 'moderate';
+      if (numericValue >= threshold.good[0] && numericValue <= threshold.good[1]) return 'good';
+      if (numericValue >= threshold.moderate[0] && numericValue <= threshold.moderate[1]) return 'moderate';
       return 'poor';
     } else if (parameter === 'dissolvedOxygen') {
-      if (value >= threshold.good) return 'good';
-      if (value >= threshold.moderate) return 'moderate';
+      if (numericValue >= threshold.good) return 'good';
+      if (numericValue >= threshold.moderate) return 'moderate';
       return 'poor';
     } else {
-      if (value <= threshold.good) return 'good';
-      if (value <= threshold.moderate) return 'moderate';
+      if (numericValue <= threshold.good) return 'good';
+      if (numericValue <= threshold.moderate) return 'moderate';
       return 'poor';
     }
   };
@@ -325,16 +333,36 @@ const Forecasting = () => {
                           {Object.entries(prediction.parameters || {}).map(([param, value]) => {
                             const status = getParameterStatus(value, param);
                             return (
-                              <div key={param} className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                  {getStatusIcon(status)}
-                                  <span className="text-xs text-gray-600">
-                                    {formatParameterName(param)}
+                              <div key={param} className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    {getStatusIcon(status)}
+                                    <span className="text-xs text-gray-600">
+                                      {formatParameterName(param)}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs font-medium text-gray-900">
+                                    {typeof value === 'object' && value !== null ? 
+                                      (value.predicted !== undefined ? value.predicted.toFixed(2) : 
+                                       value.value !== undefined ? value.value.toFixed(2) : 
+                                       JSON.stringify(value)) :
+                                      typeof value === 'number' ? value.toFixed(2) : value
+                                    } {formatParameterUnit(param)}
                                   </span>
                                 </div>
-                                <span className="text-xs font-medium text-gray-900">
-                                  {typeof value === 'number' ? value.toFixed(2) : value} {formatParameterUnit(param)}
-                                </span>
+                                {typeof value === 'object' && value !== null && (value.confidence !== undefined || value.trend !== undefined) && (
+                                  <div className="flex items-center justify-between text-xs text-gray-500 ml-6">
+                                    {value.confidence !== undefined && (
+                                      <span>Confidence: {(value.confidence * 100).toFixed(0)}%</span>
+                                    )}
+                                    {value.trend !== undefined && (
+                                      <div className="flex items-center space-x-1">
+                                        {getTrendIcon(value.trend)}
+                                        <span>Trend: {value.trend > 0 ? '+' : ''}{(value.trend * 100).toFixed(1)}%</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             );
                           })}

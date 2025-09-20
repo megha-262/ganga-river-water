@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// Create axios instance with base configuration
+// API Configuration
 const api = axios.create({
-  baseURL: 'https://ganga-river-water-d2wo.vercel.app' || 'http://localhost:5001/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5001/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
