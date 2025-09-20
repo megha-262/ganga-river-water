@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5001/api',
+  baseURL: 'https://ganga-river-water-d2wo.vercel.app' || 'http://localhost:5001/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -101,6 +101,13 @@ export const apiService = {
     },
     getByParameter: (parameter) => api.get(`/alerts/parameters/${parameter}`),
   },
+
+  // Convenience methods for backward compatibility
+  getLocations: () => apiService.locations.getAll(),
+  getForecasts: (params = {}) => apiService.forecasts.getAll(params),
+  getForecastsForLocation: (locationId) => apiService.forecasts.getLatest(locationId),
+  generateForecast: (locationId) => apiService.forecasts.generate(locationId),
+  generateAllForecasts: () => apiService.forecasts.generateAll(),
 };
 
 // Utility functions

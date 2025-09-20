@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import LocationDetails from './pages/LocationDetails';
 import Alerts from './pages/Alerts';
 import About from './pages/About';
+import Forecasting from './pages/Forecasting';
 import EmergencyResponse from './pages/EmergencyResponse'; // Import the new component
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -19,6 +20,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/location/:id" element={<LocationDetails />} />
             <Route path="/alerts" element={<Alerts />} />
+            <Route path="/forecasting" element={<Forecasting />} />
             <Route path="/about" element={<About />} />
             <Route path="/emergency" element={<EmergencyResponse />} /> {/* Add new route */}
           </Routes>
