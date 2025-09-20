@@ -125,9 +125,26 @@ const AlertCard = ({ alert }) => {
   };
 
   const getDetailedInfo = (alert) => {
+    // Handle different coordinate structures
+    let locationInfo = 'Coordinates not available';
+    
+    if (alert.locationId?.coordinates?.coordinates && Array.isArray(alert.locationId.coordinates.coordinates)) {
+      // Handle GeoJSON-style coordinates: { coordinates: [lng, lat] }
+      locationInfo = `Coordinates: ${alert.locationId.coordinates.coordinates.join(', ')}`;
+    } else if (alert.locationId?.coordinates && Array.isArray(alert.locationId.coordinates)) {
+      // Handle direct array coordinates: [lng, lat]
+      locationInfo = `Coordinates: ${alert.locationId.coordinates.join(', ')}`;
+    } else if (alert.location?.name) {
+      // Fallback to location name if coordinates not available
+      locationInfo = `Location: ${alert.location.name}${alert.location.city ? `, ${alert.location.city}` : ''}`;
+    } else if (alert.locationId?.name) {
+      // Alternative location name structure
+      locationInfo = `Location: ${alert.locationId.name}${alert.locationId.city ? `, ${alert.locationId.city}` : ''}`;
+    }
+    
     return {
       technicalDetails: `Parameter: ${alert.parameter}, Value: ${alert.thresholds?.value || alert.value || 'N/A'} ${alert.thresholds?.unit || ''}, Limit: ${alert.thresholds?.limit || 'N/A'} ${alert.thresholds?.unit || ''}`,
-      location: alert.locationId?.coordinates ? `Coordinates: ${alert.locationId.coordinates.join(', ')}` : 'Coordinates not available',
+      location: locationInfo,
       impact: getImpactAssessment(alert.level),
       nextSteps: getNextSteps(alert.level)
     };
