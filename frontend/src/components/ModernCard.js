@@ -75,19 +75,21 @@ const ModernCard = ({
       
       {/* Header with avatar and title */}
       {(avatar || title || subtitle) && (
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center space-x-3">
+        <div className="flex items-start justify-between mb-4 min-w-0">
+          <div className="flex items-center space-x-3 min-w-0 flex-1">
             {avatar && (
-              <Avatar 
-                type={avatar.type}
-                name={avatar.name}
-                image={avatar.image}
-                status={avatar.status}
-                location={avatar.location}
-                size="md"
-              />
+              <div className="flex-shrink-0">
+                <Avatar 
+                  type={avatar.type}
+                  name={avatar.name}
+                  image={avatar.image}
+                  status={avatar.status}
+                  location={avatar.location}
+                  size="md"
+                />
+              </div>
             )}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 overflow-hidden">
               {title && (
                 <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
                   {title}
@@ -102,25 +104,27 @@ const ModernCard = ({
           </div>
           
           {onClick && (
-            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
+            <div className="flex-shrink-0 ml-2">
+              <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
+            </div>
           )}
         </div>
       )}
 
       {/* Value and trend */}
       {(value || trend) && (
-        <div className="flex items-end justify-between mb-4">
+        <div className="flex items-end justify-between mb-4 min-w-0 gap-2">
           {value && (
-            <div className="text-3xl font-bold text-gray-900">
+            <div className="text-3xl font-bold text-gray-900 truncate flex-1 min-w-0">
               {value}
             </div>
           )}
           
           {trend && (
-            <div className={`flex items-center space-x-1 ${getTrendColor(trend)}`}>
+            <div className={`flex items-center space-x-1 flex-shrink-0 ${getTrendColor(trend)}`}>
               {getTrendIcon(trend)}
               {trendValue && (
-                <span className="text-sm font-medium">
+                <span className="text-sm font-medium whitespace-nowrap">
                   {trendValue}
                 </span>
               )}
@@ -131,7 +135,7 @@ const ModernCard = ({
 
       {/* Custom content */}
       {children && (
-        <div className="relative z-10">
+        <div className="relative z-10 min-w-0 overflow-hidden">
           {children}
         </div>
       )}
