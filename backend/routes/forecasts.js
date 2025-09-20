@@ -2,9 +2,14 @@ const express = require('express');
 const router = express.Router();
 const Forecast = require('../models/Forecast');
 const WaterQuality = require('../models/WaterQuality');
+const SensorData = require('../models/SensorData'); // Import SensorData model
 const Location = require('../models/Location');
 const forecastService = require('../services/forecastService');
 const moment = require('moment');
+const axios = require('axios'); // Import axios
+
+// ML Service URL
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5000';
 
 // @route   GET /api/forecasts
 // @desc    Get all forecasts
@@ -170,139 +175,89 @@ router.get('/all-locations', async (req, res) => {
   }
 });
 
-// Helper function to generate forecast using rule-based model
-async function generateForecast(locationId, historicalData) {
-  const forecastDate = new Date();
-  const predictions = [];
-  const forecastAlerts = [];
+// @route   POST /api/forecasts/generate-ml/:locationId
+// @desc    Generate forecast for a location using ML service
+// @access  Public
+router.post('/generate-ml/:locationId', async (req, res) => {
+  try {
+    const { locationId } = req.params;
+    const { days = 5 } = req.body; // Number of days to forecast
 
-  // Calculate averages from historical data
-  const avgDO = historicalData.reduce((sum, d) => sum + d.parameters.dissolvedOxygen.value, 0) / historicalData.length;
-  const avgBOD = historicalData.reduce((sum, d) => sum + d.parameters.biochemicalOxygenDemand.value, 0) / historicalData.length;
-  const avgNitrate = historicalData.reduce((sum, d) => sum + d.parameters.nitrate.value, 0) / historicalData.length;
-  const avgFecalColiform = historicalData.reduce((sum, d) => sum + d.parameters.fecalColiform.value, 0) / historicalData.length;
+    // 1. Fetch historical sensor data for the given location
+    const historicalData = await SensorData.find({ location: locationId })
+      .sort({ timestamp: 1 })
+      .limit(100); // Fetch last 100 readings for ML
 
-  // Generate predictions for next 3 days
-  for (let day = 1; day <= 3; day++) {
-    const predictionDate = moment().add(day, 'days').toDate();
-    
-    // Simple trend analysis (random variation for demo)
-    const variation = 0.1; // 10% variation
-    const seasonalFactor = 1 + (Math.sin(moment().dayOfYear() / 365 * 2 * Math.PI) * 0.1);
-    
-    const predictedDO = avgDO * (1 + (Math.random() - 0.5) * variation) * seasonalFactor;
-    const predictedBOD = avgBOD * (1 + (Math.random() - 0.5) * variation) * seasonalFactor;
-    const predictedNitrate = avgNitrate * (1 + (Math.random() - 0.5) * variation) * seasonalFactor;
-    const predictedFecalColiform = avgFecalColiform * (1 + (Math.random() - 0.5) * variation) * seasonalFactor;
+    if (historicalData.length === 0) {
+      return res.status(404).json({ success: false, message: 'No historical data found for this location.' });
+    }
 
-    // Calculate trends
-    const getTrend = (current, predicted) => {
-      const change = (predicted - current) / current;
-      if (change > 0.05) return 'declining'; // For pollutants, increase is declining quality
-      if (change < -0.05) return 'improving';
-      return 'stable';
-    };
+    // Format data for ML service
+    const formattedData = historicalData.map(data => ({
+      timestamp: data.timestamp,
+      bod: data.bod,
+      do: data.do,
+      ph: data.ph,
+      nitrate: data.nitrate,
+      fecalColiform: data.fecalColiform,
+    }));
 
-    const latest = historicalData[0];
-    
-    // Calculate predicted WQI (simplified)
-    const predictedWQI = Math.max(0, Math.min(100, 
-      100 - (predictedBOD * 5) - (predictedNitrate * 0.5) - (Math.log10(predictedFecalColiform) * 10) + (predictedDO * 10)
-    ));
+    // 2. Send historical data to Python ML service for prediction
+    const mlResponse = await axios.post(`${ML_SERVICE_URL}/predict`, {
+      locationId,
+      historical_data: formattedData,
+      days,
+    });
 
-    const predictedStatus = getWQIStatus(predictedWQI);
+    const mlPredictions = mlResponse.data;
 
-    const prediction = {
-      date: predictionDate,
-      dayOffset: day,
-      parameters: {
-        dissolvedOxygen: {
-          predicted: Math.round(predictedDO * 100) / 100,
-          confidence: 75 + Math.random() * 20,
-          trend: getTrend(latest.parameters.dissolvedOxygen.value, predictedDO)
-        },
-        biochemicalOxygenDemand: {
-          predicted: Math.round(predictedBOD * 100) / 100,
-          confidence: 75 + Math.random() * 20,
-          trend: getTrend(latest.parameters.biochemicalOxygenDemand.value, predictedBOD)
-        },
-        nitrate: {
-          predicted: Math.round(predictedNitrate * 100) / 100,
-          confidence: 75 + Math.random() * 20,
-          trend: getTrend(latest.parameters.nitrate.value, predictedNitrate)
-        },
-        fecalColiform: {
-          predicted: Math.round(predictedFecalColiform),
-          confidence: 70 + Math.random() * 20,
-          trend: getTrend(latest.parameters.fecalColiform.value, predictedFecalColiform)
-        }
+    // 3. Process ML predictions and save to database
+    const newForecast = new Forecast({
+      locationId,
+      generatedAt: new Date(),
+      predictions: [], // This will be populated from mlPredictions
+      modelInfo: {
+        algorithm: 'ARIMA', // Or LSTM, Prophet based on actual ML model
+        version: '1.0',
+        accuracy: 0.85, // Placeholder accuracy
       },
-      predictedWQI: Math.round(predictedWQI),
-      predictedStatus,
-      expectedWeather: {
-        rainfall: Math.random() * 10, // Random rainfall 0-10mm
-        temperature: 20 + Math.random() * 15, // 20-35°C
-        humidity: 60 + Math.random() * 30 // 60-90%
-      }
-    };
+    });
 
-    predictions.push(prediction);
+    // Assuming mlPredictions contains arrays like bod_forecast, do_forecast etc.
+    // We need to transform this into the structure expected by the Forecast model
+    for (let i = 0; i < days; i++) {
+      const predictionDate = moment().add(i + 1, 'days').toDate();
+      newForecast.predictions.push({
+        date: predictionDate,
+        dayOffset: i + 1,
+        parameters: {
+          dissolvedOxygen: { predicted: mlPredictions.do_forecast ? mlPredictions.do_forecast[i] : null, confidence: 80, trend: 'stable' },
+          biochemicalOxygenDemand: { predicted: mlPredictions.bod_forecast ? mlPredictions.bod_forecast[i] : null, confidence: 80, trend: 'stable' },
+          nitrate: { predicted: mlPredictions.nitrate_forecast ? mlPredictions.nitrate_forecast[i] : null, confidence: 80, trend: 'stable' },
+          fecalColiform: { predicted: mlPredictions.fecalColiform_forecast ? mlPredictions.fecalColiform_forecast[i] : null, confidence: 80, trend: 'stable' },
+        },
+        predictedWQI: 0, // To be calculated or predicted by ML
+        predictedStatus: 'unknown', // To be determined
+        expectedWeather: {},
+      });
+    }
 
-    // Check for alerts
-    if (predictedBOD > 6.0) {
-      forecastAlerts.push({
-        day,
-        parameter: 'biochemicalOxygenDemand',
-        severity: 'high',
-        message: `High BOD levels predicted (${prediction.parameters.biochemicalOxygenDemand.predicted} mg/L)`
-      });
+    const savedForecast = await newForecast.save();
+
+    res.json({
+      success: true,
+      message: 'Forecast generated using ML service',
+      data: savedForecast,
+    });
+
+  } catch (error) {
+    console.error('Error generating ML forecast:', error.message);
+    if (error.response) {
+      console.error('ML Service Response Error:', error.response.data);
+      return res.status(error.response.status).json({ success: false, message: 'ML Service Error', error: error.response.data });
     }
-    
-    if (predictedNitrate > 45.0) {
-      forecastAlerts.push({
-        day,
-        parameter: 'nitrate',
-        severity: 'high',
-        message: `High nitrate levels predicted (${prediction.parameters.nitrate.predicted} mg/L)`
-      });
-    }
-    
-    if (predictedFecalColiform > 2500) {
-      forecastAlerts.push({
-        day,
-        parameter: 'fecalColiform',
-        severity: 'high',
-        message: `High fecal coliform predicted (${prediction.parameters.fecalColiform.predicted} MPN/100ml)`
-      });
-    }
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
-
-  // Create and save forecast
-  const forecast = new Forecast({
-    locationId,
-    forecastDate,
-    predictions,
-    forecastAlerts,
-    modelInfo: {
-      algorithm: 'rule-based',
-      version: '1.0',
-      accuracy: 75 + Math.random() * 15
-    }
-  });
-
-  await forecast.save();
-  
-  return await Forecast.findById(forecast._id)
-    .populate('locationId', 'name city coordinates');
-}
-
-// Helper function to determine WQI status
-function getWQIStatus(wqi) {
-  if (wqi >= 90) return 'excellent';
-  if (wqi >= 70) return 'good';
-  if (wqi >= 50) return 'moderate';
-  if (wqi >= 25) return 'poor';
-  return 'very_poor';
-}
+});
 
 module.exports = router;

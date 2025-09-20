@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Droplets, AlertTriangle, MapPin, Info } from 'lucide-react';
+import { Menu, X, Droplets, AlertTriangle, MapPin, Info, LifeBuoy } from 'lucide-react';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,6 +9,7 @@ const Navbar = () => {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Droplets },
     { name: 'Alerts', href: '/alerts', icon: AlertTriangle },
+    { name: 'Emergency', href: '/emergency', icon: LifeBuoy }, // New Emergency link
     { name: 'About', href: '/about', icon: Info },
   ];
 

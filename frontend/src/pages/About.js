@@ -163,29 +163,21 @@ const About = () => {
           </div>
         </div>
 
-        {/* Technology Stack */}
+        {/* Team Members */}
         <div className="mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">Technology Stack</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">Our Team</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Frontend</h3>
-              <ul className="space-y-2 text-gray-600">
-                <li>• React.js for dynamic user interface</li>
-                <li>• Tailwind CSS for responsive design</li>
-                <li>• Chart.js for data visualization</li>
-                <li>• Leaflet for interactive maps</li>
-                <li>• Axios for API communication</li>
-              </ul>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Web Developer Team Leader</h3>
+              <p className="text-gray-600">Lovely Pandey</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Backend</h3>
-              <ul className="space-y-2 text-gray-600">
-                <li>• Node.js with Express.js framework</li>
-                <li>• MongoDB for data storage</li>
-                <li>• Mongoose for data modeling</li>
-                <li>• RESTful API architecture</li>
-                <li>• Real-time data processing</li>
-              </ul>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Frontend Developer</h3>
+              <p className="text-gray-600">Anupriya</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Backend Developer</h3>
+              <p className="text-gray-600">Megha Kumari</p>
             </div>
           </div>
         </div>

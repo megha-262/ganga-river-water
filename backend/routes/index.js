@@ -6,6 +6,7 @@ const locationsRoutes = require('./locations');
 const waterQualityRoutes = require('./waterQuality');
 const forecastsRoutes = require('./forecasts');
 const alertsRoutes = require('./alerts');
+const sensorDataRoutes = require('./sensorData');
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -59,6 +60,7 @@ router.use('/locations', locationsRoutes);
 router.use('/water-quality', waterQualityRoutes);
 router.use('/forecasts', forecastsRoutes);
 router.use('/alerts', alertsRoutes);
+router.use('/sensorData', sensorDataRoutes);
 
 // API documentation endpoint
 router.get('/docs', (req, res) => {
