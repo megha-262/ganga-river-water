@@ -22,6 +22,9 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'http://localhost:3001',
+    'http://localhost:3002',
+    'http://localhost:3003',
+    'https://ganga-river-water.vercel.app/',
     'https://ganga-river-water-d2wo.vercel.app',
     process.env.FRONTEND_URL
   ].filter(Boolean),
