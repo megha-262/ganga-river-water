@@ -3,7 +3,7 @@ import axios from 'axios';
 // API Configuration
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5001/api',
-  timeout: 10000,
+  timeout: 30000, // 30 seconds timeout for Vercel deployment
   headers: {
     'Content-Type': 'application/json',
   },
@@ -20,103 +20,156 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// Response interceptor for error handling with retry logic
 api.interceptors.response.use(
   (response) => {
-    return response.data;
+    return response;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+    
     console.error('API Error:', error);
+    
+    // Retry logic for network errors and timeouts
+    if (!originalRequest._retry && 
+        (error.code === 'ERR_NETWORK' || 
+         error.code === 'ECONNABORTED' || 
+         error.code === 'ERR_FAILED')) {
+      
+      originalRequest._retry = true;
+      originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
+      
+      // Retry up to 3 times with exponential backoff
+      if (originalRequest._retryCount <= 3) {
+        const delay = Math.pow(2, originalRequest._retryCount) * 1000; // 2s, 4s, 8s
+        console.log(`Retrying request in ${delay}ms (attempt ${originalRequest._retryCount}/3)`);
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return api(originalRequest);
+      }
+    }
     
     if (error.response) {
       // Server responded with error status
-      throw new Error(error.response.data.message || 'Server error occurred');
+      const { status, data } = error.response;
+      console.error(`HTTP ${status}:`, data);
+      
+      if (status === 401) {
+        // Handle unauthorized access
+        console.error('Unauthorized access');
+      } else if (status === 404) {
+        console.error('Resource not found');
+      } else if (status >= 500) {
+        console.error('Server error');
+      }
     } else if (error.request) {
       // Request was made but no response received
-      throw new Error('Network error - please check your connection');
+      console.error('No response received:', error.request);
     } else {
       // Something else happened
-      throw new Error('An unexpected error occurred');
+      console.error('Request setup error:', error.message);
+    }
+    
+    return Promise.reject(error);
+   }
+ );
+
+// Helper function to extract data from response
+const extractData = (response) => response.data;
+
+// Helper function to handle API calls with proper error handling
+const handleApiCall = async (apiCall) => {
+  try {
+    const response = await apiCall();
+    return extractData(response);
+  } catch (error) {
+    // If all retries failed, throw a user-friendly error
+    if (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') {
+      throw new Error('Unable to connect to server. Please check your internet connection and try again.');
+    } else if (error.response) {
+      throw new Error(error.response.data?.message || `Server error: ${error.response.status}`);
+    } else {
+      throw new Error('An unexpected error occurred. Please try again.');
     }
   }
-);
+};
 
 // API endpoints
 export const apiService = {
   // Health check
-  health: () => api.get('/health'),
+  health: () => handleApiCall(() => api.get('/health')),
   
   // Locations
   locations: {
-    getAll: () => api.get('/locations'),
-    getById: (id) => api.get(`/locations/${id}`),
+    getAll: () => handleApiCall(() => api.get('/locations')),
+    getById: (id) => handleApiCall(() => api.get(`/locations/${id}`)),
     getNearby: (lat, lng, radius = 50) => 
-      api.get(`/locations/nearby?lat=${lat}&lng=${lng}&radius=${radius}`),
-    create: (data) => api.post('/locations', data),
-    update: (id, data) => api.put(`/locations/${id}`, data),
-    delete: (id) => api.delete(`/locations/${id}`),
+      handleApiCall(() => api.get(`/locations/nearby?lat=${lat}&lng=${lng}&radius=${radius}`)),
+    create: (data) => handleApiCall(() => api.post('/locations', data)),
+    update: (id, data) => handleApiCall(() => api.put(`/locations/${id}`, data)),
+    delete: (id) => handleApiCall(() => api.delete(`/locations/${id}`)),
   },
 
   // Water Quality
   waterQuality: {
     getAll: (params = {}) => {
       const queryString = new URLSearchParams(params).toString();
-      return api.get(`/water-quality${queryString ? `?${queryString}` : ''}`);
+      return handleApiCall(() => api.get(`/water-quality${queryString ? `?${queryString}` : ''}`));
     },
-    getLatest: () => api.get('/water-quality/latest'),
+    getLatest: () => handleApiCall(() => api.get('/water-quality/latest')),
     getByLocation: (locationId, params = {}) => {
       const queryString = new URLSearchParams(params).toString();
-      return api.get(`/water-quality/location/${locationId}${queryString ? `?${queryString}` : ''}`);
+      return handleApiCall(() => api.get(`/water-quality/location/${locationId}${queryString ? `?${queryString}` : ''}`));
     },
     getTrends: (params = {}) => {
       const queryString = new URLSearchParams(params).toString();
-      return api.get(`/water-quality/trends${queryString ? `?${queryString}` : ''}`);
+      return handleApiCall(() => api.get(`/water-quality/trends${queryString ? `?${queryString}` : ''}`));
     },
-    getCurrentAlerts: () => api.get('/water-quality/alerts'),
-    getCombined: (locationId) => api.get(`/water-quality/combined/${locationId}`),
-    getCombinedAll: () => api.get('/water-quality/combined'),
-    create: (data) => api.post('/water-quality', data),
+    getCurrentAlerts: () => handleApiCall(() => api.get('/water-quality/alerts')),
+    getCombined: (locationId) => handleApiCall(() => api.get(`/water-quality/combined/${locationId}`)),
+    getCombinedAll: () => handleApiCall(() => api.get('/water-quality/combined')),
+    create: (data) => handleApiCall(() => api.post('/water-quality', data)),
   },
 
   // Forecasts
   forecasts: {
     getAll: (params = {}) => {
       const queryString = new URLSearchParams(params).toString();
-      return api.get(`/forecasts${queryString ? `?${queryString}` : ''}`);
+      return handleApiCall(() => api.get(`/forecasts${queryString ? `?${queryString}` : ''}`));
     },
-    getLatest: (locationId) => api.get(`/forecasts/latest/${locationId}`),
-    getAllLocations: () => api.get('/forecasts/all-locations'),
-    generate: (locationId) => api.post(`/forecasts/generate/${locationId}`),
-    generateAll: () => api.post('/forecasts/generate-all'),
+    getLatest: (locationId) => handleApiCall(() => api.get(`/forecasts/latest/${locationId}`)),
+    getAllLocations: () => handleApiCall(() => api.get('/forecasts/all-locations')),
+    generate: (locationId) => handleApiCall(() => api.post(`/forecasts/generate/${locationId}`)),
+    generateAll: () => handleApiCall(() => api.post('/forecasts/generate-all')),
   },
 
   // Alerts
   alerts: {
     getAll: (params = {}) => {
       const queryString = new URLSearchParams(params).toString();
-      return api.get(`/alerts${queryString ? `?${queryString}` : ''}`);
+      return handleApiCall(() => api.get(`/alerts${queryString ? `?${queryString}` : ''}`));
     },
-    getSummary: () => api.get('/alerts/summary'),
-    getStatistics: () => api.get('/alerts/statistics'),
+    getSummary: () => handleApiCall(() => api.get('/alerts/summary')),
+    getStatistics: () => handleApiCall(() => api.get('/alerts/statistics')),
     getTrends: (params = {}) => {
       const queryString = new URLSearchParams(params).toString();
-      return api.get(`/alerts/trends${queryString ? `?${queryString}` : ''}`);
+      return handleApiCall(() => api.get(`/alerts/trends${queryString ? `?${queryString}` : ''}`));
     },
     getByLevel: (level, params = {}) => {
       const queryString = new URLSearchParams(params).toString();
-      return api.get(`/alerts/level/${level}${queryString ? `?${queryString}` : ''}`);
+      return handleApiCall(() => api.get(`/alerts/level/${level}${queryString ? `?${queryString}` : ''}`));
     },
     getByLevelRange: (minLevel, maxLevel, params = {}) => {
       const queryString = new URLSearchParams({ ...params, levelMin: minLevel, levelMax: maxLevel }).toString();
-      return api.get(`/alerts${queryString ? `?${queryString}` : ''}`);
+      return handleApiCall(() => api.get(`/alerts${queryString ? `?${queryString}` : ''}`));
     },
-    resolve: (alertId) => api.put(`/alerts/${alertId}/resolve`),
-    acknowledge: (alertId) => api.put(`/alerts/${alertId}/acknowledge`),
+    resolve: (alertId) => handleApiCall(() => api.put(`/alerts/${alertId}/resolve`)),
+    acknowledge: (alertId) => handleApiCall(() => api.put(`/alerts/${alertId}/acknowledge`)),
     getByLocation: (locationId, params = {}) => {
       const queryString = new URLSearchParams(params).toString();
-      return api.get(`/alerts/location/${locationId}${queryString ? `?${queryString}` : ''}`);
+      return handleApiCall(() => api.get(`/alerts/location/${locationId}${queryString ? `?${queryString}` : ''}`));
     },
-    getByParameter: (parameter) => api.get(`/alerts/parameters/${parameter}`),
+    getByParameter: (parameter) => handleApiCall(() => api.get(`/alerts/parameters/${parameter}`)),
   },
 
   // Convenience methods for backward compatibility

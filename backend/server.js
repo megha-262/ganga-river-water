@@ -27,11 +27,15 @@ app.use(cors({
     'http://localhost:3001',
     'http://localhost:3002',
     'http://localhost:3003',
-    'https://ganga-river-water.vercel.app/',
+    'https://ganga-river-water.vercel.app',
     'https://ganga-river-water-d2wo.vercel.app',
     process.env.FRONTEND_URL
   ].filter(Boolean),
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  preflightContinue: false,
+  optionsSuccessStatus: 200
 }));
 
 // Body parsing middleware
