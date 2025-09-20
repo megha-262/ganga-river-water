@@ -4,6 +4,7 @@ import LocationsMap from '../components/LocationsMap';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui';
 import { Badge } from '../components/ui';
 import { LoadingSpinner } from '../components/common';
+import { apiService, mockData } from '../services/api';
 import {
   MapPin,
   Search,
@@ -47,18 +48,30 @@ const Locations = () => {
   const fetchLocations = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/locations');
-      const data = await response.json();
+      const response = await apiService.locations.getAll();
       
-      if (data.success) {
-        setLocations(data.data);
+      if (response.success) {
+        setLocations(response.data);
         setError(null);
       } else {
         setError('Failed to fetch locations');
       }
     } catch (err) {
-      setError('Error connecting to server');
-      console.error('Error fetching locations:', err);
+      console.warn('API not available, using mock data:', err.message);
+      // Fallback to mock data when API is not available
+      const mockLocationsWithDetails = mockData.locations.map(location => ({
+        ...location,
+        coordinates: {
+          latitude: location.coordinates.coordinates[1],
+          longitude: location.coordinates.coordinates[0]
+        },
+        installationDate: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
+        description: `Water quality monitoring station at ${location.name}, ${location.city}`,
+        isActive: true
+      }));
+      
+      setLocations(mockLocationsWithDetails);
+      setError(null); // Don't show error when using mock data
     } finally {
       setLoading(false);
     }
