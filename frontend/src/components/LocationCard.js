@@ -50,23 +50,24 @@ const LocationCard = ({ location, waterQualityData = [] }) => {
       className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
       onClick={handleCardClick}
     >
-      <div className="flex items-start justify-between mb-4 min-w-0 gap-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold text-gray-900 mb-1 truncate">
+      <div className="mb-4">
+        <div className="text-center mb-3">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 break-words">
             {location.name || 'Unknown Location'}
           </h3>
-          <div className="flex items-center text-sm text-gray-600 min-w-0">
-            <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
-            <span className="truncate">{location.city || 'Unknown'}, {location.state || 'Unknown'}</span>
+          <div className="flex flex-col items-center text-sm text-gray-600">
+            <MapPin className="w-5 h-5 mb-1" />
+            <span className="break-words text-center">{location.city || 'Unknown'}, {location.state || 'Unknown'}</span>
           </div>
-          <p className="text-xs text-gray-500 mt-1 truncate">
+          <p className="text-xs text-gray-500 mt-2 break-words text-center">
             River Km: {location.riverKm || 'N/A'}
           </p>
         </div>
         
+        
         {latestReading && (
-          <div className="flex items-center space-x-2 flex-shrink-0">
-            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium capitalize whitespace-nowrap ${getStatusColor(latestReading.overallStatus)}`}>
+          <div className="flex justify-center items-center space-x-2 mt-2">
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(latestReading.overallStatus)}`}>
               {latestReading.overallStatus}
             </span>
             {getTrendIcon(latestReading.trend)}
@@ -84,27 +85,27 @@ const LocationCard = ({ location, waterQualityData = [] }) => {
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="min-w-0">
+            <div>
               <span className="text-gray-600">DO:</span>
-              <span className="ml-1 font-medium truncate block">
+              <span className="ml-1 font-medium break-words block">
                 {formatParameter(latestReading.parameters?.dissolvedOxygen)}
               </span>
             </div>
-            <div className="min-w-0">
+            <div>
               <span className="text-gray-600">BOD:</span>
-              <span className="ml-1 font-medium truncate block">
+              <span className="ml-1 font-medium break-words block">
                 {formatParameter(latestReading.parameters?.biochemicalOxygenDemand)}
               </span>
             </div>
-            <div className="min-w-0">
+            <div>
               <span className="text-gray-600">pH:</span>
-              <span className="ml-1 font-medium truncate block">
+              <span className="ml-1 font-medium break-words block">
                 {formatParameter(latestReading.parameters?.ph)}
               </span>
             </div>
-            <div className="min-w-0">
+            <div>
               <span className="text-gray-600">Turbidity:</span>
-              <span className="ml-1 font-medium truncate block">
+              <span className="ml-1 font-medium break-words block">
                 {formatParameter(latestReading.parameters?.turbidity)}
               </span>
             </div>

@@ -141,11 +141,11 @@ const WaterQualityMap = ({ locations = [], waterQualityData = [] }) => {
               icon={createCustomIcon(status)}
             >
               <Popup className="custom-popup">
-                <div className="p-2 min-w-64 max-w-80">
-                  <h3 className="font-semibold text-lg text-gray-900 mb-2 truncate">
+                <div className="p-3 min-w-64 max-w-80">
+                  <h3 className="font-semibold text-lg text-gray-900 mb-2 break-words text-center">
                     {location.name}
                   </h3>
-                  <p className="text-sm text-gray-600 mb-3 truncate">
+                  <p className="text-sm text-gray-600 mb-3 break-words text-center">
                     {location.city}, {location.state}
                   </p>
                   
@@ -165,11 +165,11 @@ const WaterQualityMap = ({ locations = [], waterQualityData = [] }) => {
                       
                       <div className="border-t pt-2 mt-2">
                         <h4 className="text-sm font-medium text-gray-700 mb-1">Parameters:</h4>
-                        <div className="grid grid-cols-2 gap-1 text-xs">
-                          <div className="truncate">DO: {formatParameter(reading.parameters?.dissolvedOxygen)}</div>
-                          <div className="truncate">BOD: {formatParameter(reading.parameters?.biochemicalOxygenDemand)}</div>
-                          <div className="truncate">pH: {formatParameter(reading.parameters?.ph)}</div>
-                          <div className="truncate">Turbidity: {formatParameter(reading.parameters?.turbidity)}</div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="break-words">DO: {formatParameter(reading.parameters?.dissolvedOxygen)}</div>
+                          <div className="break-words">BOD: {formatParameter(reading.parameters?.biochemicalOxygenDemand)}</div>
+                          <div className="break-words">pH: {formatParameter(reading.parameters?.ph)}</div>
+                          <div className="break-words">Turbidity: {formatParameter(reading.parameters?.turbidity)}</div>
                         </div>
                       </div>
                       

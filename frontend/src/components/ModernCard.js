@@ -75,36 +75,33 @@ const ModernCard = ({
       
       {/* Header with avatar and title */}
       {(avatar || title || subtitle) && (
-        <div className="flex items-start justify-between mb-4 min-w-0">
-          <div className="flex items-center space-x-3 min-w-0 flex-1">
-            {avatar && (
-              <div className="flex-shrink-0">
-                <Avatar 
-                  type={avatar.type}
-                  name={avatar.name}
-                  image={avatar.image}
-                  status={avatar.status}
-                  location={avatar.location}
-                  size="md"
-                />
-              </div>
-            )}
-            <div className="flex-1 min-w-0 overflow-hidden">
-              {title && (
-                <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
-                  {title}
-                </h3>
-              )}
-              {subtitle && (
-                <p className="text-sm text-gray-600 truncate">
-                  {subtitle}
-                </p>
-              )}
+        <div className="mb-4">
+          {avatar && (
+            <div className="flex justify-center mb-3">
+              <Avatar 
+                type={avatar.type}
+                name={avatar.name}
+                image={avatar.image}
+                status={avatar.status}
+                location={avatar.location}
+                size="md"
+              />
             </div>
+          )}
+          <div className="text-center">
+            {title && (
+              <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors break-words">
+                {title}
+              </h3>
+            )}
+            {subtitle && (
+              <p className="text-sm text-gray-600 mt-1 break-words">
+                {subtitle}
+              </p>
+            )}
           </div>
-          
           {onClick && (
-            <div className="flex-shrink-0 ml-2">
+            <div className="flex justify-end mt-2">
               <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
             </div>
           )}
@@ -113,18 +110,18 @@ const ModernCard = ({
 
       {/* Value and trend */}
       {(value || trend) && (
-        <div className="flex items-end justify-between mb-4 min-w-0 gap-2">
+        <div className="text-center mb-4">
           {value && (
-            <div className="text-3xl font-bold text-gray-900 truncate flex-1 min-w-0">
+            <div className="text-3xl font-bold text-gray-900 break-words mb-2">
               {value}
             </div>
           )}
           
           {trend && (
-            <div className={`flex items-center space-x-1 flex-shrink-0 ${getTrendColor(trend)}`}>
+            <div className={`flex items-center justify-center space-x-1 ${getTrendColor(trend)}`}>
               {getTrendIcon(trend)}
               {trendValue && (
-                <span className="text-sm font-medium whitespace-nowrap">
+                <span className="text-sm font-medium break-words">
                   {trendValue}
                 </span>
               )}
