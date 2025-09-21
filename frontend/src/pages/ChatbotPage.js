@@ -68,11 +68,10 @@ const ChatbotPage = () => {
 
   const loadConversationHistory = async () => {
     try {
-      const response = await fetch(`/api/chatbot/conversation/${sessionId}`);
-      const data = await response.json();
+      const response = await apiService.chatbot.getConversation(sessionId);
       
-      if (data.success && data.data.messages) {
-        setMessages(data.data.messages);
+      if (response.success && response.data.messages) {
+        setMessages(response.data.messages);
       }
     } catch (error) {
       console.error('Error loading conversation history:', error);
@@ -102,31 +101,23 @@ const ChatbotPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chatbot/message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage,
-          sessionId: sessionId,
-          stationId: selectedStation || null
-        }),
+      const response = await apiService.chatbot.sendMessage({
+        message: userMessage,
+        sessionId: sessionId,
+        stationId: selectedStation || null
       });
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (response.success) {
         const assistantMessage = {
           role: 'assistant',
-          content: data.data.response,
+          content: response.data.response,
           timestamp: new Date(),
           stationId: selectedStation || null
         };
         setMessages(prev => [...prev, assistantMessage]);
         setShouldAutoScroll(true);
       } else {
-        throw new Error(data.message || 'Failed to get response');
+        throw new Error(response.message || 'Failed to get response');
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -161,9 +152,7 @@ const ChatbotPage = () => {
 
   const clearConversation = async () => {
     try {
-      await fetch(`/api/chatbot/conversation/${sessionId}`, {
-        method: 'DELETE',
-      });
+      await apiService.chatbot.clearConversation(sessionId);
       setMessages([]);
       setError(null);
     } catch (error) {

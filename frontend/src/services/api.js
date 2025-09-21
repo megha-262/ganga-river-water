@@ -175,6 +175,14 @@ export const apiService = {
     },
   },
 
+  // Chatbot endpoints
+  chatbot: {
+    sendMessage: (data) => handleApiCall(() => api.post('/chatbot/message', data)),
+    getConversation: (sessionId) => handleApiCall(() => api.get(`/chatbot/conversation/${sessionId}`)),
+    clearConversation: (sessionId) => handleApiCall(() => api.delete(`/chatbot/conversation/${sessionId}`)),
+    health: () => handleApiCall(() => api.get('/chatbot/health')),
+  },
+
   // Convenience methods for backward compatibility
   getLocations: () => apiService.locations.getAll(),
   getForecasts: (params = {}) => apiService.forecasts.getAll(params),
