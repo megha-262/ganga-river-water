@@ -7,6 +7,7 @@ const waterQualityRoutes = require('./waterQuality');
 const forecastsRoutes = require('./forecasts');
 const alertsRoutes = require('./alerts');
 const sensorDataRoutes = require('./sensorData');
+const chatbotRoutes = require('./chatbot');
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -19,7 +20,8 @@ router.get('/health', (req, res) => {
       locations: '/api/locations',
       waterQuality: '/api/water-quality',
       forecasts: '/api/forecasts',
-      alerts: '/api/alerts'
+      alerts: '/api/alerts',
+      chatbot: '/api/chatbot'
     }
   });
 });
@@ -55,12 +57,13 @@ router.get('/status', async (req, res) => {
   }
 });
 
-// Mount route modules
+// Use route modules
 router.use('/locations', locationsRoutes);
 router.use('/water-quality', waterQualityRoutes);
 router.use('/forecasts', forecastsRoutes);
 router.use('/alerts', alertsRoutes);
 router.use('/sensorData', sensorDataRoutes);
+router.use('/chatbot', chatbotRoutes);
 
 // API documentation endpoint
 router.get('/docs', (req, res) => {

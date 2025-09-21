@@ -170,6 +170,9 @@ export const apiService = {
       return handleApiCall(() => api.get(`/alerts/location/${locationId}${queryString ? `?${queryString}` : ''}`));
     },
     getByParameter: (parameter) => handleApiCall(() => api.get(`/alerts/parameters/${parameter}`)),
+    getRecentAlerts: (limit = 10) => {
+      return handleApiCall(() => api.get('/alerts/recent', { params: { limit } }));
+    },
   },
 
   // Convenience methods for backward compatibility

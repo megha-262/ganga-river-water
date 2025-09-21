@@ -61,6 +61,48 @@ router.get('/', async (req, res) => {
   }
 });
 
+// @route   GET /api/alerts/recent
+// @desc    Get recent alerts for dashboard
+// @access  Public
+router.get('/recent', async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    
+    // Get recent alerts using alert service
+    const alerts = await alertService.getActiveAlerts({ 
+      limit: parseInt(limit),
+      sortBy: 'createdAt',
+      sortOrder: 'desc'
+    });
+    
+    // Get alert statistics for dashboard
+    const statistics = await alertService.getAlertStatistics();
+    
+    // Calculate quick stats
+    const stats = {
+      total: alerts.length,
+      active: alerts.filter(a => a.status === 'active').length,
+      critical: alerts.filter(a => a.level >= 4).length,
+      resolved: alerts.filter(a => a.status === 'resolved').length
+    };
+
+    res.json({
+      success: true,
+      count: alerts.length,
+      stats,
+      statistics,
+      data: alerts
+    });
+  } catch (error) {
+    console.error('Error fetching recent alerts:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching recent alerts',
+      error: error.message
+    });
+  }
+});
+
 // @route   GET /api/alerts/summary
 // @desc    Get alerts summary with counts by severity
 // @access  Public

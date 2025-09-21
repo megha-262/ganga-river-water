@@ -14,7 +14,7 @@ const forecastSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  // Forecast for next 3 days
+  // Forecast for next 7 days
   predictions: [{
     date: {
       type: Date,
@@ -24,7 +24,7 @@ const forecastSchema = new mongoose.Schema({
       type: Number,
       required: true,
       min: 1,
-      max: 3
+      max: 7
     },
     parameters: {
       dissolvedOxygen: {
@@ -86,10 +86,12 @@ const forecastSchema = new mongoose.Schema({
   },
   // Alerts for forecast period
   forecastAlerts: [{
-    day: { type: Number, min: 1, max: 3 },
+    day: { type: Number, min: 1, max: 7 },
     parameter: { type: String, required: true },
     severity: { type: String, enum: ['low', 'medium', 'high'], required: true },
-    message: { type: String, required: true }
+    message: { type: String, required: true },
+    confidence: { type: Number, min: 0, max: 100, default: 75 },
+    recommendedActions: [{ type: String }]
   }]
 }, {
   timestamps: true

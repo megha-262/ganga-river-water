@@ -201,22 +201,7 @@ const About = () => {
           </div>
         </div>
 
-        {/* Contact Information */}
-        <div className="bg-gray-900 rounded-lg shadow-lg p-8 text-white text-center">
-          <h2 className="text-2xl font-bold mb-4">Get Involved</h2>
-          <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
-            Join us in our mission to protect the Ganga River. Whether you're a researcher, 
-            policymaker, or concerned citizen, your involvement can make a difference.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-              Access API Documentation
-            </button>
-            <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-              Download Data Reports
-            </button>
-          </div>
-        </div>
+
       </div>
     </div>
   );

@@ -9,7 +9,8 @@ import {
   Zap,
   Skull,
   Bell,
-  RefreshCw
+  RefreshCw,
+  MessageCircle
 } from 'lucide-react';
 import AlertsOverview from '../components/AlertsOverview';
 import AlertsList from '../components/AlertsList';
@@ -33,13 +34,25 @@ const Alerts = () => {
     <div className="container mx-auto px-4 py-6 max-w-7xl">
       {/* Page Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Water Quality Alerts
-        </h1>
-        <p className="text-gray-600">
-          Monitor and manage water quality alerts across all monitoring locations. 
-          Our 5-level alert system helps you prioritize responses based on severity.
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Water Quality Alerts
+            </h1>
+            <p className="text-gray-600">
+              Monitor and manage water quality alerts across all monitoring locations. 
+              Our 5-level alert system helps you prioritize responses based on severity.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <a href="/chatbot" className="flex items-center gap-2">
+                <MessageCircle className="h-4 w-4" />
+                Ask About Alerts
+              </a>
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Alert Level Legend */}

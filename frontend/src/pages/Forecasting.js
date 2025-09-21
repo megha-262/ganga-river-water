@@ -17,7 +17,8 @@ import {
   Download,
   Zap,
   Target,
-  Waves
+  Waves,
+  MessageCircle
 } from 'lucide-react';
 import { LoadingSpinner } from '../components/common';
 import { apiService } from '../services/api';
@@ -55,6 +56,7 @@ const Forecasting = () => {
   const [forecasts, setForecasts] = useState([]);
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState('all');
+  const [selectedDays, setSelectedDays] = useState(3); // Default to 3 days
   const [lastUpdated, setLastUpdated] = useState(null);
 
   useEffect(() => {
@@ -75,11 +77,22 @@ const Forecasting = () => {
         ? await apiService.getForecasts()
         : await apiService.getForecastsForLocation(selectedLocation);
       
-      setForecasts(forecastsResponse.data || []);
+      // Handle both single forecast objects and arrays
+      const forecastsData = forecastsResponse?.data;
+      if (Array.isArray(forecastsData)) {
+        setForecasts(forecastsData);
+      } else if (forecastsData && typeof forecastsData === 'object') {
+        // Single forecast object - wrap it in an array
+        setForecasts([forecastsData]);
+      } else {
+        console.warn('No valid forecasts data received:', forecastsData);
+        setForecasts([]);
+      }
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Error fetching forecasting data:', err);
       setError('Failed to load forecasting data. Please try again.');
+      setForecasts([]); // Ensure forecasts is reset to empty array on error
     } finally {
       setLoading(false);
     }
@@ -196,8 +209,12 @@ const Forecasting = () => {
 
   // Prepare chart data for WQI trends
   const prepareWQIChartData = (forecasts) => {
+    if (!Array.isArray(forecasts) || forecasts.length === 0) {
+      return { labels: [], datasets: [] };
+    }
+    
     const datasets = forecasts.map((forecast, index) => {
-      const data = forecast.predictions?.map(p => p.predictedWQI) || [];
+      const data = forecast.predictions?.slice(0, selectedDays).map(p => p.predictedWQI) || [];
       const colors = [
         'rgba(59, 130, 246, 0.8)',
         'rgba(16, 185, 129, 0.8)',
@@ -222,16 +239,23 @@ const Forecasting = () => {
       };
     });
 
+    // Generate dynamic labels based on selected days
+    const labels = Array.from({ length: selectedDays }, (_, i) => `Day ${i + 1}`);
+
     return {
-      labels: ['Day 1', 'Day 2', 'Day 3'],
+      labels: labels,
       datasets: datasets
     };
   };
 
   // Prepare parameter comparison chart data
   const prepareParameterChartData = (forecasts, parameter) => {
+    if (!Array.isArray(forecasts) || forecasts.length === 0) {
+      return { labels: [], datasets: [] };
+    }
+    
     const datasets = forecasts.map((forecast, index) => {
-      const data = forecast.predictions?.map(p => p.parameters?.[parameter]?.predicted || 0) || [];
+      const data = forecast.predictions?.slice(0, selectedDays).map(p => p.parameters?.[parameter]?.predicted || 0) || [];
       const colors = [
         'rgba(59, 130, 246, 0.8)',
         'rgba(16, 185, 129, 0.8)',
@@ -251,8 +275,11 @@ const Forecasting = () => {
       };
     });
 
+    // Generate dynamic labels based on selected days
+    const labels = Array.from({ length: selectedDays }, (_, i) => `Day ${i + 1}`);
+
     return {
-      labels: ['Day 1', 'Day 2', 'Day 3'],
+      labels: labels,
       datasets: datasets
     };
   };
@@ -337,7 +364,7 @@ const Forecasting = () => {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Water Quality Forecasting</h1>
                 <p className="text-sm text-gray-500">
-                  Predictive analysis for the next 3 days
+                  Predictive analysis for the next {selectedDays} {selectedDays === 1 ? 'day' : 'days'}
                 </p>
               </div>
             </div>
@@ -348,6 +375,13 @@ const Forecasting = () => {
                   Updated {moment(lastUpdated).fromNow()}
                 </div>
               )}
+              <button
+                onClick={() => navigate('/chatbot')}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Ask About Forecasts
+              </button>
               <button
                 onClick={() => generateNewForecast()}
                 disabled={loading}
@@ -364,7 +398,7 @@ const Forecasting = () => {
       {/* Filters */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Location
@@ -380,6 +414,20 @@ const Forecasting = () => {
                     {location.name} - {location.city}
                   </option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Forecast Days
+              </label>
+              <select
+                value={selectedDays}
+                onChange={(e) => setSelectedDays(parseInt(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value={1}>1 Day</option>
+                <option value={3}>3 Days</option>
+                <option value={7}>7 Days</option>
               </select>
             </div>
             <div className="flex items-end">
@@ -483,13 +531,13 @@ const Forecasting = () => {
 
             {/* Enhanced Forecast Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {forecasts.map((forecast, index) => (
+              {Array.isArray(forecasts) && forecasts.map((forecast, index) => (
                 <div key={forecast._id} className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transform hover:scale-105 transition-all duration-300">
                   {/* Animated Header */}
                   <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 relative overflow-hidden">
                     <div className="absolute inset-0 bg-black bg-opacity-10"></div>
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white bg-opacity-10 rounded-full -mr-16 -mt-16"></div>
-                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white bg-opacity-10 rounded-full -ml-12 -mb-12"></div>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white bg-opacity-10 rounded-full transform translate-x-8 -translate-y-8"></div>
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white bg-opacity-10 rounded-full transform -translate-x-6 translate-y-6"></div>
                     
                     <div className="relative z-10 flex items-center justify-between">
                       <div className="flex items-center space-x-4">
@@ -516,8 +564,8 @@ const Forecasting = () => {
 
                   {/* Enhanced Forecast Data */}
                   <div className="p-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                      {forecast.predictions && forecast.predictions.map((prediction, dayIndex) => (
+                    <div className={`grid gap-4 mb-6 ${selectedDays === 1 ? 'grid-cols-1' : selectedDays === 3 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+                      {forecast.predictions && forecast.predictions.slice(0, selectedDays).map((prediction, dayIndex) => (
                         <div key={dayIndex} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200 hover:shadow-lg transition-shadow duration-300">
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center space-x-2">

@@ -40,8 +40,8 @@ const Breadcrumb = ({ items = [], className = '' }) => {
   }
   
   return (
-    <nav className={clsx('flex items-center space-x-1 text-sm', className)} aria-label="Breadcrumb">
-      <ol className="flex items-center space-x-1">
+    <nav className={clsx('flex items-center space-x-1 text-sm bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 shadow-sm border border-gray-200/50', className)} aria-label="Breadcrumb">
+      <ol className="flex items-center space-x-2">
         {breadcrumbs.map((item, index) => {
           const isLast = index === breadcrumbs.length - 1;
           const Icon = item.icon;
@@ -49,24 +49,24 @@ const Breadcrumb = ({ items = [], className = '' }) => {
           return (
             <li key={item.href || index} className="flex items-center">
               {index > 0 && (
-                <ChevronRight className="h-4 w-4 text-gray-400 mx-1 flex-shrink-0" />
+                <ChevronRight className="h-4 w-4 text-gray-400 mx-2 flex-shrink-0" />
               )}
               
               {isLast || item.isActive ? (
                 <span className={clsx(
-                  'flex items-center font-medium',
-                  isLast ? 'text-gray-900' : 'text-gray-500'
+                  'flex items-center font-semibold',
+                  isLast ? 'text-gray-700 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent' : 'text-gray-500'
                 )}>
-                  {Icon && <Icon className="h-4 w-4 mr-1 flex-shrink-0" />}
-                  <span className="truncate max-w-32 sm:max-w-none">{item.label}</span>
+                  {Icon && <Icon className={clsx('h-4 w-4 mr-2 flex-shrink-0', isLast ? 'text-blue-600' : '')} />}
+                  <span className="truncate max-w-[150px] sm:max-w-none">{item.label}</span>
                 </span>
               ) : (
                 <Link
                   to={item.href}
-                  className="flex items-center text-gray-500 hover:text-gray-700 transition-colors"
+                  className="flex items-center text-gray-600 hover:text-blue-600 transition-all duration-200 hover:bg-blue-50 rounded-md px-2 py-1 group"
                 >
-                  {Icon && <Icon className="h-4 w-4 mr-1 flex-shrink-0" />}
-                  <span className="truncate max-w-32 sm:max-w-none">{item.label}</span>
+                  {Icon && <Icon className="h-4 w-4 mr-2 flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />}
+                  <span className="truncate max-w-[100px] sm:max-w-none font-medium">{item.label}</span>
                 </Link>
               )}
             </li>
