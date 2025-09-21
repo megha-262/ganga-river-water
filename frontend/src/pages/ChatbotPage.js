@@ -68,10 +68,10 @@ const ChatbotPage = () => {
 
   const loadConversationHistory = async () => {
     try {
-      const response = await apiService.chatbot.getConversation(sessionId);
+      const data = await apiService.chatbot.getConversation(sessionId);
       
-      if (response.success && response.data.messages) {
-        setMessages(response.data.messages);
+      if (data.success && data.data.messages) {
+        setMessages(data.data.messages);
       }
     } catch (error) {
       console.error('Error loading conversation history:', error);
@@ -101,23 +101,23 @@ const ChatbotPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await apiService.chatbot.sendMessage({
-        message: userMessage,
-        sessionId: sessionId,
-        stationId: selectedStation || null
-      });
+      const data = await apiService.chatbot.sendMessage(
+        userMessage,
+        sessionId,
+        selectedStation || null
+      );
 
-      if (response.success) {
+      if (data.success) {
         const assistantMessage = {
           role: 'assistant',
-          content: response.data.response,
+          content: data.data.response,
           timestamp: new Date(),
           stationId: selectedStation || null
         };
         setMessages(prev => [...prev, assistantMessage]);
         setShouldAutoScroll(true);
       } else {
-        throw new Error(response.message || 'Failed to get response');
+        throw new Error(data.message || 'Failed to get response');
       }
     } catch (error) {
       console.error('Error sending message:', error);

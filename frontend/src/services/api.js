@@ -175,11 +175,14 @@ export const apiService = {
     },
   },
 
-  // Chatbot endpoints
+  // Chatbot
   chatbot: {
-    sendMessage: (data) => handleApiCall(() => api.post('/chatbot/message', data)),
-    getConversation: (sessionId) => handleApiCall(() => api.get(`/chatbot/conversation/${sessionId}`)),
-    clearConversation: (sessionId) => handleApiCall(() => api.delete(`/chatbot/conversation/${sessionId}`)),
+    sendMessage: (message, sessionId, stationId = null) => 
+      handleApiCall(() => api.post('/chatbot/message', { message, sessionId, stationId })),
+    getConversation: (sessionId) => 
+      handleApiCall(() => api.get(`/chatbot/conversation/${sessionId}`)),
+    clearConversation: (sessionId) => 
+      handleApiCall(() => api.delete(`/chatbot/conversation/${sessionId}`)),
     health: () => handleApiCall(() => api.get('/chatbot/health')),
   },
 

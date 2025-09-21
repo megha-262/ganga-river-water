@@ -90,7 +90,8 @@ app.use('*', (req, res) => {
       '/api/locations',
       '/api/water-quality',
       '/api/forecasts',
-      '/api/alerts'
+      '/api/alerts',
+      '/api/chatbot'
     ]
   });
 });
