@@ -8,7 +8,7 @@ const { seedAlerts, seedLocations } = require('../data/seedData');
 // Connect to database
 const connectDB = async () => {
   try {
-    const MONGODB_URI = 'mongodb+srv://megha99734_db_user:2dFD4Sgt4Ewr5d1S@cluster0.byca9ck.mongodb.net/river-project?retryWrites=true&w=majority';
+    const MONGODB_URI = process.env.MONGODB_URI;
     await mongoose.connect(MONGODB_URI);
     console.log('MongoDB connected for adding sample alerts...');
   } catch (error) {

@@ -7,7 +7,7 @@ const Conversation = require('../models/Conversation');
 
 class ChatbotService {
   constructor() {
-    this.genAI = new GoogleGenerativeAI('AIzaSyDsvm6dc2OIHVq_6OQ8v7SF1uh2WO7GPho');
+    this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   }
 
